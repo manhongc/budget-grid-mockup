@@ -209,7 +209,7 @@ table.sec{width:100%;border-collapse:collapse;font-size:12.5px}
     </label>
     <label for="role">Viewing as
       <select id="role">
-        <option value="fmSJ">Fund Manager · Youth Education × San Jose</option>
+        <option value="fmSJ">Fund Manager · Youth Education × San Gabriel</option>
         <option value="fmY">Fund Manager · Youth Education (all chapters)</option>
         <option value="acct">Accounting Staff · entity-wide</option>
         <option value="eom" selected>Entity Operations Manager</option>
@@ -263,7 +263,7 @@ table.sec{width:100%;border-collapse:collapse;font-size:12.5px}
 (function(){
 'use strict';
 const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const CHAPTERS={HO:'Home Office',SJ:'San Jose',LA:'Los Angeles'};
+const CHAPTERS={HO:'Home Office',SJ:'San Gabriel',LA:'Irvine'};
 const CH_ORDER=['HO','SJ','LA'];
 const FUNDS={
   GEN:{name:'General Operating Fund',state:'active'},
@@ -343,7 +343,7 @@ const SCN={
   C:{today:'2028-01-10',fy:2028,idx:0,draft:'F3'}
 };
 const ROLES={
-  fmSJ:{label:'Fund Manager · Youth Education × San Jose',sees:(f,c)=>f==='YTH'&&c==='SJ',edits:(f,c)=>f==='YTH'&&c==='SJ',level:1,submits:(f,c)=>f==='YTH'&&c==='SJ'},
+  fmSJ:{label:'Fund Manager · Youth Education × San Gabriel',sees:(f,c)=>f==='YTH'&&c==='SJ',edits:(f,c)=>f==='YTH'&&c==='SJ',level:1,submits:(f,c)=>f==='YTH'&&c==='SJ'},
   fmY:{label:'Fund Manager · Youth Education',sees:f=>f==='YTH',edits:f=>f==='YTH',level:2,submits:f=>f==='YTH'},
   acct:{label:'Accounting Staff',sees:()=>true,edits:()=>true,level:0,submits:()=>false},
   eom:{label:'Entity Operations Manager',sees:()=>true,edits:()=>true,level:3,submits:()=>true},
@@ -382,8 +382,8 @@ function freshState(scn,role){
   if(scn==='A'){
     Object.assign(d.sections,{
       'GEN|HO':{status:'submitted',by:'Fund Manager · General Operating',level:2,at:'2027-05-10'},
-      'GEN|SJ':{status:'submitted',by:'Fund Manager · General Operating × San Jose',level:1,at:'2027-05-11'},
-      'YTH|LA':{status:'submitted',by:'Fund Manager · Youth Education × Los Angeles',level:1,at:'2027-05-11'},
+      'GEN|SJ':{status:'submitted',by:'Fund Manager · General Operating × San Gabriel',level:1,at:'2027-05-11'},
+      'YTH|LA':{status:'submitted',by:'Fund Manager · Youth Education × Irvine',level:1,at:'2027-05-11'},
       'TMP|HO':{status:'submitted',by:'Fund Manager · Temple Building',level:2,at:'2027-05-09'}
     });
   }
@@ -541,7 +541,7 @@ function renderHead(d){
 }
 function renderBanners(d){
   const b=[]; const r=role();
-  if(S.role==='fmSJ') b.push(['info','You see only Youth Education × San Jose, your scope. The Total view rolls up only what you can see.']);
+  if(S.role==='fmSJ') b.push(['info','You see only Youth Education × San Gabriel, your scope. The Total view rolls up only what you can see.']);
   if(S.role==='exec') b.push(['info','Read only. The Executive Approver reads budgets, forecasts and the Outlook. Whether it also gives a final approval is under review.']);
   if(S.role==='acct'||S.role==='eam') { if(S.view===d.id&&d.state==='draft') b.push(['','You can edit lines in sections that are not yet submitted. You do not submit; Fund Managers and the EOM do.']); }
   if(S.view===d.id){

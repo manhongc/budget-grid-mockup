@@ -70,6 +70,7 @@ h1,h2,h3{text-wrap:balance;margin:0}
 .head{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-start;justify-content:space-between}
 .head h1{font-size:22px;font-weight:700;letter-spacing:-.015em;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .meta{font-size:12.5px;color:var(--muted);margin-top:4px;display:flex;flex-wrap:wrap;gap:4px 14px}
+.meta b{color:var(--text);font-weight:700}
 .actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .btn{border:1px solid var(--border-strong);background:var(--surface);border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;box-shadow:var(--shadow)}
 .btn.primary{background:var(--primary);border-color:var(--primary);color:var(--primary-ink)}
@@ -201,7 +202,7 @@ table.sec{width:100%;border-collapse:collapse;font-size:12.5px}
     <span class="tag">Mockup controls</span>
     <label for="scn">Scenario
       <select id="scn">
-        <option value="A">A · Forecast F2 in preparation · today 2027-05-12</option>
+        <option value="A">A · Forecast Q2 in preparation · today 2027-05-12</option>
         <option value="B">B · New Budget FYE28 in preparation · today 2027-10-15</option>
         <option value="C">C · Forecast opened after the year ended · today 2028-01-10</option>
       </select>
@@ -221,7 +222,7 @@ table.sec{width:100%;border-collapse:collapse;font-size:12.5px}
   </div>
 
   <div class="topbar">
-    <span class="brand"><b>Dana</b> · Budget planning</span>
+    <span class="brand">Budget planning</span>
     <span class="ent">Entity: BWLA</span>
     <span class="who" id="who"></span>
   </div>
@@ -248,7 +249,6 @@ table.sec{width:100%;border-collapse:collapse;font-size:12.5px}
     <div class="legend">
       <span><i class="sw" style="background:var(--act-bg)"></i>Actual month</span>
       <span><i class="sw" style="background:var(--surface)"></i>Plan month</span>
-      <span style="font-style:italic;color:var(--borrow)">Borrowed from the Budget (outside this Forecast's months)</span>
       <span>“–” means zero</span>
       <span style="color:var(--neg)">Negative shown in red</span>
       <span>Subtotals are net: revenue less expense (a minus is a net cost, not an error)</span>
@@ -366,13 +366,13 @@ function freshState(scn,role){
   const plans={};
   const b27={id:'B27',kind:'budget',short:'Budget',name:'Budget FYE27',fy:2027,cov:[0,11],state:'approved',note:'Approved 2026-11-20 by the Entity Accounting Manager',values:{},lines:[],version:3};
   LINES.forEach(l=>{b27.values[l.id]=l.b.slice();b27.lines.push(l.id);});
-  const f1={id:'F1',kind:'forecast',short:'F1',name:'Forecast F1',fy:2027,cov:[2,11],state:'approved',note:'Approved 2027-03-02 by the Entity Accounting Manager',values:{},lines:[],version:2,from:'Budget FYE27'};
+  const f1={id:'F1',kind:'forecast',short:'Q1',name:'Forecast Q1',fy:2027,cov:[2,11],state:'approved',note:'Approved 2027-03-02 by the Entity Accounting Manager',values:{},lines:[],version:2,from:'Budget FYE27'};
   LINES.forEach(l=>{const t=F1_TWEAK[l.id];f1.values[l.id]=l.b.map((x,m)=>m<2?null:(t?t(m):x));f1.lines.push(l.id);});
   plans.B27=b27;plans.F1=f1;
   let d;
   if(scn==='A'||scn==='C'){
     const start=scn==='A'?4:11;
-    d={id:scn==='A'?'F2':'F3',kind:'forecast',short:scn==='A'?'F2':'F3',name:scn==='A'?'Forecast F2':'Forecast F3',fy:2027,cov:[start,11],state:'draft',values:{},lines:[],version:1,from:'Forecast F1'};
+    d={id:scn==='A'?'F2':'F3',kind:'forecast',short:scn==='A'?'Q2':'Q4',name:scn==='A'?'Forecast Q2':'Forecast Q4',fy:2027,cov:[start,11],state:'draft',values:{},lines:[],version:1,from:'Forecast Q1'};
     LINES.forEach(l=>{d.values[l.id]=f1.values[l.id].map((x,m)=>m<start?null:x);d.lines.push(l.id);});
   } else {
     d={id:'B28',kind:'budget',short:'Budget',name:'Budget FYE28',fy:2028,cov:[0,11],state:'draft',values:{},lines:[],version:1,from:null};
@@ -447,7 +447,7 @@ function canAddIn(p,f,c){
 
 /* views */
 function viewList(){
-  const d=draftPlan(); const out=[{id:'OUT',label:'Current Outlook FYE27'},{id:'B27',label:'Budget FYE27'},{id:'F1',label:'Forecast F1'+(S.current==='F1'?' · current':'')}];
+  const d=draftPlan(); const out=[{id:'OUT',label:'Current Outlook FYE27'},{id:'B27',label:'Budget FYE27'},{id:'F1',label:S.plans.F1.name+(S.current==='F1'?' · current':'')}];
   out.push({id:d.id,label:d.name+' · '+stateWord(d)});
   return out;
 }
@@ -479,13 +479,13 @@ function provider(){
   if(S.view==='OUT'){
     const c=curIdx(2027); const cf=S.plans[S.current]; const b=S.plans.B27;
     return {fy:2027,
-      head:m=>m<c?{src:'(Actual)',act:true}:(m>=cf.cov[0]?{src:'(Plan)',from:cf.short}:{src:'(Plan)',from:'Budget'}),
+      head:m=>m<c?{src:'Actual',act:true}:{src:'Plan'},
       val:(id,m)=>m<c?{v:actual(id,m),act:true}:(m>=cf.cov[0]?{v:(cf.values[id]||[])[m]||0}:{v:(b.values[id]||[])[m]||0})};
   }
   const p=S.plans[S.view]; const b=S.plans.B27;
   return {fy:p.fy,
-    head:m=>(m>=p.cov[0]&&m<=p.cov[1])?{src:'(Plan)',from:p.short}:{src:'(Budget)',borrow:true},
-    val:(id,m)=>(m>=p.cov[0]&&m<=p.cov[1])?{v:(p.values[id]||[])[m]||0}:{v:(b.values[id]||[])[m]||0,borrow:true}};
+    head:m=>(m>=p.cov[0]&&m<=p.cov[1])?{src:'Plan'}:(p.kind==='forecast'&&m<curIdx(p.fy)?{src:'Actual',act:true}:{src:'Plan',borrow:true}),
+    val:(id,m)=>(m>=p.cov[0]&&m<=p.cov[1])?{v:(p.values[id]||[])[m]||0}:(p.kind==='forecast'&&m<curIdx(p.fy)?{v:actual(id,m),act:true}:{v:(b.values[id]||[])[m]||0,borrow:true})};
 }
 
 /* render */
@@ -512,20 +512,20 @@ function renderHead(d){
     const cf=S.plans[S.current];
     title='Current Outlook FYE27';
     crumb='Budget planning / FYE27 / Current Outlook';
-    meta=['Actual months: completed months to '+s.today+' (current month excluded)','Plan months from '+cf.name+', the current Forecast','Currency USD (functional)','Fiscal year starts January'];
+    meta=['Live: actuals for every completed month to '+s.today+' (current month excluded)','<span>Plan months from <b>'+esc(cf.name)+'</b>, the latest approved Forecast</span>','Currency USD (functional)','Fiscal year starts January'];
     $('title').innerHTML=esc(title);
   } else {
     const p=S.plans[S.view];
     title=p.name; crumb='Budget planning / '+fyLab(p.fy)+' / '+p.name;
     meta=['Stamp: '+fyLab(p.fy)+', fiscal year starts January ('+p.fy+' Jan–Dec)'];
-    if(p.kind==='forecast') meta.push('Covers '+fyLab(p.fy)+'-'+pp(p.cov[0])+' → P12 (to year end)');
+    if(p.kind==='forecast') meta.push('Covers '+fyLab(p.fy)+'-'+pp(p.cov[0])+' → P12 (to year end); earlier months show actuals');
     if(p.from) meta.push('Pre-populated from '+p.from);
     if(p.note) meta.push(p.note);
     meta.push('Version '+p.version,'Currency USD (functional)');
     $('title').innerHTML=esc(title)+' '+pillFor(p);
   }
   $('crumb').textContent=crumb;
-  $('meta').innerHTML=meta.map(x=>'<span>'+esc(x)+'</span>').join('');
+  $('meta').innerHTML=meta.map(x=>x.startsWith('<span>')?x:'<span>'+esc(x)+'</span>').join('');
   let a='';
   if(S.view===d.id){
     if(S.role==='eom'&&(d.state==='draft'||d.state==='returned')){
@@ -576,9 +576,9 @@ function renderGrid(){
   if(showHelp) h+='<th style="text-align:right">Spread helper<span class="src">'+(p.kind==='forecast'?'Budget annual':'Last 12 months actuals')+'</span></th>';
   for(let m=0;m<cols;m++){
     const hd=prov.head(m);
-    h+='<th class="'+(hd.act?'act':'')+'"><span class="p">'+fyLab(prov.fy)+'-'+pp(m)+'</span><br>'+prov.fy+' '+MONTHS[m]+'<br>'+hd.src+(hd.from?'<span class="src">'+esc(hd.from)+'</span>':'<span class="src">&nbsp;</span>')+'</th>';
+    h+='<th class="'+(hd.act?'act':'')+'"><span class="p">'+fyLab(prov.fy)+'-'+pp(m)+'</span><br>'+prov.fy+' '+MONTHS[m]+'<br>'+hd.src+'</th>';
   }
-  h+='<th style="text-align:right"><span class="p">'+fyLab(prov.fy)+'</span><br>Annual<br>&nbsp;<span class="src">&nbsp;</span></th></tr></thead><tbody>';
+  h+='<th style="text-align:right"><span class="p">'+fyLab(prov.fy)+'</span><br>Annual<br>&nbsp;</th></tr></thead><tbody>';
 
   const valsOf=row=>{const out=[];const cls=[];for(let m=0;m<12;m++){let v=0,act=false,borrow=false;row.members.forEach(id=>{const x=prov.val(id,m);v+=x.v||0;act=!!x.act;borrow=!!x.borrow;});out.push(v);cls.push(act?'act':borrow?'borrow':'');}return {v:out,cls:cls};};
   const sign=acct=>ACCOUNTS[acct].type==='rev'?1:-1;
@@ -654,7 +654,7 @@ function spreadRow(p,id,showHelp){
   const amt=S.panel.amount; const to=amt-atd; const parts=spreadPlan(to,rem);
   const c=curIdx(p.fy);
   const l=lineOf(id);
-  const src=p.kind==='forecast'?'Pre-filled with this row’s FYE27 Budget annual amount. You may change it.':'Pre-filled with this row’s actuals for the last 12 months ('+curIdx(2027)+' of 12 in Dana). You may change it.';
+  const src=p.kind==='forecast'?'Pre-filled with this row’s FYE27 Budget annual amount. You may change it.':'Pre-filled with this row’s actuals for the last 12 months ('+curIdx(2027)+' of 12 recorded). You may change it.';
   let prev=rem.map((m,i)=>'<span class="'+(parts[i]<0?'neg':'')+'"><b>'+pp(m)+'</b>'+fmt(parts[i])+'</span>').join('');
   return '<tr class="panel"><td colspan="'+(14+(showHelp?1:0))+'"><div class="panelbox">'+
     '<div class="f" style="flex-basis:100%"><span class="big">Spread · '+esc(l.acct+' '+ACCOUNTS[l.acct].name)+' · '+esc(PROGRAMS[l.prog].name)+' · '+esc(CHAPTERS[l.ch])+'</span></div>'+

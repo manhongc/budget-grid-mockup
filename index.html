@@ -191,6 +191,25 @@ table.sec{width:100%;border-collapse:collapse;font-size:12.5px}
 .legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--muted);padding:8px 12px;border-top:1px solid var(--border)}
 .legend span{display:inline-flex;align-items:center;gap:6px}
 .sw{width:14px;height:12px;border-radius:3px;border:1px solid var(--border)}
+.fmtbar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--border);font-size:12.5px}
+.fmtbar .k{color:var(--muted)}
+.fmtbar .warnk{color:var(--warn);font-weight:600}
+.fmtbar .dec{display:flex;gap:6px;align-items:center;color:var(--text)}
+.fmtbar .seg button{padding:3px 12px}
+.g .against,.g input.cell.against{color:var(--neg)}
+.prev span.against{color:var(--neg)}
+.g tr.grp td{color:var(--muted);font-weight:600}
+.g tr.grp td.lab{padding-left:38px;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em}
+.g tr.acct td.lab{padding-left:54px}
+.g tr.net td{font-weight:600;border-bottom:1px solid var(--border-strong)}
+.g tr.net td.lab{padding-left:24px}
+.g tr.fnet td{font-weight:700;background:var(--surface-2)}
+.g tr.gtot td{border-top:0}
+.g tr.gtot.first td{border-top:2px solid var(--border-strong)}
+.g tr.gtot.net td{border-top:1px solid var(--border-strong)}
+.g td.cmp,.g th.cmp{text-align:right;min-width:98px;padding:6px 8px}
+.g .cmp.first{border-left:2px solid var(--border-strong)}
+.g td.cmp.unfav{color:var(--neg)}
 @media (prefers-reduced-motion:no-preference){.btn,.seg button,.tabs button{transition:background-color .12s,color .12s}}
 </style>
 </head>
@@ -245,13 +264,15 @@ table.sec{width:100%;border-collapse:collapse;font-size:12.5px}
       <div class="seg" id="views" role="group" aria-label="View"></div>
       <div class="tabs" id="tabs" role="group" aria-label="Chapter or Home Office"></div>
     </div>
+    <div class="fmtbar" id="fmtbar"></div>
     <div class="gwrap"><table class="g num" id="grid"></table></div>
     <div class="legend">
       <span><i class="sw" style="background:var(--act-bg)"></i>Actual month</span>
       <span><i class="sw" style="background:var(--surface)"></i>Plan month</span>
       <span>“–” means zero</span>
-      <span style="color:var(--neg)">Negative shown in red</span>
-      <span>Subtotals are net: revenue less expense (a minus is a net cost, not an error)</span>
+      <span>Revenue positive, expense negative</span>
+      <span style="color:var(--neg)">Red: against the row’s normal direction (negative revenue, positive expense)</span>
+      <span>Variance: plus is favorable; a red minus is unfavorable</span>
     </div>
   </div>
 
@@ -298,6 +319,8 @@ const ACCOUNTS={
   '6900':{name:'Relief Grants',type:'exp',budget:true},
   '6950':{name:'Bank Fees',type:'exp',budget:false}
 };
+/* Amounts are held in cents, signed for presentation: revenue positive, expense negative. */
+const SIGN=a=>ACCOUNTS[a].type==='rev'?1:-1;
 const flat=v=>Array(12).fill(v);
 const at=o=>{const a=Array(12).fill(0);Object.keys(o).forEach(k=>{a[+k]=o[k];});return a;};
 const LINES=[
@@ -319,7 +342,7 @@ const LINES=[
   {ch:'LA',prog:'YTH-WKND',acct:'6020',b:flat(120)},
   {ch:'LA',prog:'YTH-WKND',acct:'6300',b:flat(500)},
   {ch:'LA',prog:'OUT-D',acct:'6020',b:flat(100)}
-].map(l=>Object.assign(l,{id:l.ch+'|'+l.prog+'|'+l.acct}));
+].map(l=>Object.assign(l,{id:l.ch+'|'+l.prog+'|'+l.acct,b:l.b.map(x=>x*100*SIGN(l.acct))}));
 const LINE=Object.fromEntries(LINES.map(l=>[l.id,l]));
 function lineOf(id){ if(LINE[id]) return LINE[id]; const p=id.split('|'); return {id:id,ch:p[0],prog:p[1],acct:p[2],b:flat(0)}; }
 const fundOf=id=>PROGRAMS[lineOf(id).prog].fund;
@@ -329,10 +352,10 @@ const F1_TWEAK={
   'SJ|YTH-CAMP|6100':m=>[5,6,7].includes(m)?1400:0,
   'HO|GEN-D|4010':()=>11000
 };
-function wobble(id,m){let h=7;const s=id+'#'+m;for(let i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))>>>0;}return ((h%21)-10)/100;}
+function wobble(id,m){let h=7;const s=id+'#'+m;for(let i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))>>>0;}h^=h>>>16;h=Math.imul(h,0x45d9f3b)>>>0;h^=h>>>16;return ((h%2001)-1000)/10000;}
 function actual(id,m){
   const l=lineOf(id);
-  if(l.prog==='DIS-D') return m===0?2000:m===1?1500:0;
+  if(l.prog==='DIS-D') return m===0?-200000:m===1?-150000:0;
   if(l.prog==='TMP-D') return 0;
   return Math.round((l.b[m]||0)*(1+wobble(id,m)));
 }
@@ -352,9 +375,24 @@ const ROLES={
 };
 
 let S=null;
+let UNIT='one', DEC=false;
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-function fmt(v){ if(!v) return '–'; return (v<0?'−':'')+Math.abs(v).toLocaleString('en-US'); }
+function fmt(v){
+  if(!v) return '–';
+  let x=v/100, d=DEC?2:0;
+  if(UNIT==='K'){x=x/1000;d=1;} else if(UNIT==='M'){x=x/1e6;d=2;}
+  return (x<0?'−':'')+Math.abs(x).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+}
+function fmtEdit(v){ if(!v) return ''; const x=v/100; return (x<0?'−':'')+Math.abs(x).toLocaleString('en-US',{minimumFractionDigits:DEC?2:0,maximumFractionDigits:2}); }
+function fmtExact(v){ if(!v) return '–'; const x=v/100; return (x<0?'−':'')+Math.abs(x).toLocaleString('en-US',{minimumFractionDigits:DEC?2:0,maximumFractionDigits:2}); }
+function parseAmt(s){
+  s=String(s).replace(/[,\s$]/g,'').replace(/−/g,'-');
+  if(s===''||s==='–'||s==='-'||s==='+') return 0;
+  const m=/^([+-]?)(\d+)(?:\.(\d{1,2}))?$/.exec(s); if(!m) return null;
+  const c=parseInt(m[2],10)*100+parseInt((m[3]||'0').padEnd(2,'0'),10);
+  return m[1]==='-'?-c:c;
+}
 const pp=m=>'P'+String(m+1).padStart(2,'0');
 const fyLab=fy=>'FYE'+String(fy%100).padStart(2,'0');
 const sum=a=>a.reduce((x,y)=>x+(y||0),0);
@@ -367,7 +405,7 @@ function freshState(scn,role){
   const b27={id:'B27',kind:'budget',short:'Budget',name:'Budget FYE27',fy:2027,cov:[0,11],state:'approved',note:'Approved 2026-11-20 by the Entity Accounting Manager',values:{},lines:[],version:3};
   LINES.forEach(l=>{b27.values[l.id]=l.b.slice();b27.lines.push(l.id);});
   const f1={id:'F1',kind:'forecast',short:'Q1',name:'Forecast Q1',fy:2027,cov:[2,11],state:'approved',note:'Approved 2027-03-02 by the Entity Accounting Manager',values:{},lines:[],version:2,from:'Budget FYE27'};
-  LINES.forEach(l=>{const t=F1_TWEAK[l.id];f1.values[l.id]=l.b.map((x,m)=>m<2?null:(t?t(m):x));f1.lines.push(l.id);});
+  LINES.forEach(l=>{const t=F1_TWEAK[l.id];f1.values[l.id]=l.b.map((x,m)=>m<2?null:(t?t(m)*100*SIGN(l.acct):x));f1.lines.push(l.id);});
   plans.B27=b27;plans.F1=f1;
   let d;
   if(scn==='A'||scn==='C'){
@@ -500,29 +538,36 @@ function render(){
   const chs=visibleChapters(ids);
   if(!S.tab||(S.tab!=='TOTAL'&&!chs.includes(S.tab))) S.tab=chs[0]||'TOTAL';
   $('tabs').innerHTML=chs.map(c=>'<button type="button" data-tab="'+c+'" aria-pressed="'+(S.tab===c)+'">'+CHAPTERS[c]+'</button>').join('')+'<button type="button" data-tab="TOTAL" aria-pressed="'+(S.tab==='TOTAL')+'">Total<span class="ro">read only</span></button>';
+  renderFmtBar();
   renderHead(d);
   renderBanners(d);
   renderGrid();
   renderBelow(d);
 }
+function renderFmtBar(){
+  const u=[['one','1'],['K','K'],['M','M']];
+  $('fmtbar').innerHTML='<span class="k">Amounts</span><div class="seg" role="group" aria-label="Units">'+u.map(x=>'<button type="button" data-unit="'+x[0]+'" aria-pressed="'+(UNIT===x[0])+'">'+x[1]+'</button>').join('')+'</div>'+
+    '<label class="dec" for="dec"><input type="checkbox" id="dec" '+(DEC?'checked':'')+' '+(UNIT!=='one'?'disabled':'')+'> Show cents (.00)</label>'+
+    '<span class="k">'+(UNIT==='one'?'USD':UNIT==='K'?'USD thousands (one decimal)':'USD millions (two decimals)')+'</span>'+
+    (UNIT!=='one'&&S.view===sc().draft?'<span class="k warnk">Switch to 1 to edit</span>':'');
+}
 function renderHead(d){
   const s=sc();
-  let title,meta=[],crumb;
+  let meta=[],crumb;
   if(S.view==='OUT'){
     const cf=S.plans[S.current];
-    title='Current Outlook FYE27';
     crumb='Budget planning / FYE27 / Current Outlook';
     meta=['Live: actuals for every completed month to '+s.today+' (current month excluded)','<span>Plan months from <b>'+esc(cf.name)+'</b>, the latest approved Forecast</span>','Currency USD (functional)','Fiscal year starts January'];
-    $('title').innerHTML=esc(title);
+    $('title').innerHTML='Current Outlook FYE27';
   } else {
     const p=S.plans[S.view];
-    title=p.name; crumb='Budget planning / '+fyLab(p.fy)+' / '+p.name;
+    crumb='Budget planning / '+fyLab(p.fy)+' / '+p.name;
     meta=['Stamp: '+fyLab(p.fy)+', fiscal year starts January ('+p.fy+' Jan–Dec)'];
     if(p.kind==='forecast') meta.push('Covers '+fyLab(p.fy)+'-'+pp(p.cov[0])+' → P12 (to year end); earlier months show actuals');
     if(p.from) meta.push('Pre-populated from '+p.from);
     if(p.note) meta.push(p.note);
     meta.push('Version '+p.version,'Currency USD (functional)');
-    $('title').innerHTML=esc(title)+' '+pillFor(p);
+    $('title').innerHTML=esc(p.name)+' '+pillFor(p);
   }
   $('crumb').textContent=crumb;
   $('meta').innerHTML=meta.map(x=>x.startsWith('<span>')?x:'<span>'+esc(x)+'</span>').join('');
@@ -540,7 +585,7 @@ function renderHead(d){
   $('hactions').innerHTML=a;
 }
 function renderBanners(d){
-  const b=[]; const r=role();
+  const b=[];
   if(S.role==='fmSJ') b.push(['info','You see only Youth Education × San Gabriel, your scope. The Total view rolls up only what you can see.']);
   if(S.role==='exec') b.push(['info','Read only. The Executive Approver reads budgets, forecasts and the Outlook. Whether it also gives a final approval is under review.']);
   if(S.role==='acct'||S.role==='eam') { if(S.view===d.id&&d.state==='draft') b.push(['','You can edit lines in sections that are not yet submitted. You do not submit; Fund Managers and the EOM do.']); }
@@ -548,9 +593,8 @@ function renderBanners(d){
     if(d.state==='final') b.push(['info','The EOM made the final submission. The plan is locked; nobody edits it. The Entity Accounting Manager approves it or returns it.']);
     if(d.state==='returned'&&d.ret) b.push(['warn','Returned to the EOM by the Entity Accounting Manager: “'+esc(d.ret)+'”. Every section stays submitted. The EOM corrects the numbers directly or reopens chosen sections to their preparers, then makes a new final submission.']);
     if(d.state==='approved') b.push(['ok',d.kind==='forecast'?d.name+' is approved and is now the current Forecast. The Outlook takes its plan months from it.':d.name+' is approved and final.']);
-    const inv=d.lines.filter(id=>isInvalid(d,id)).length;
-    if(inv&&d.state!=='approved'&&d.lines.some(id=>isInvalid(d,id)&&ROLES[S.role].sees(fundOf(id),lineOf(id).ch))) b.push(['danger','Wildfire Relief Fund 2026 was cancelled after '+(d.from||'the prior version')+'. Its lines carried into this version are invalid. They block that section’s submission, the final submission and approval until they are moved to another Program or cleared.']);
-    if(d.kind==='budget'&&d.fy===2028) b.push(['','Budget FYE28 starts with a row for every account that had actuals in the last 12 months. The cells start at “–”; the helper holds the actuals total, ready to spread.']);
+    if(d.state!=='approved'&&d.lines.some(id=>isInvalid(d,id)&&ROLES[S.role].sees(fundOf(id),lineOf(id).ch))) b.push(['danger','Wildfire Relief Fund 2026 was cancelled after '+(d.from||'the prior version')+'. Its lines carried into this version are invalid. They block that section’s submission, the final submission and approval until they are moved to another Program or cleared.']);
+    if(d.kind==='budget'&&d.fy===2028) b.push(['','Budget FYE28 starts with a row for every account that had activity in the last 12 months. The cells start at “–”; the helper holds that activity, ready to spread.']);
     if(remaining(d).length===0) b.push(['warn','Every month of this plan has passed, so there is no month left to spread into. Spread is unavailable; type values into the cells instead.']);
   } else if(S.view!=='OUT'){
     b.push(['','This is a complete, read-only view of an approved plan. Only '+draftPlan().name+' can be edited.']);
@@ -560,7 +604,8 @@ function renderBanners(d){
 
 function renderGrid(){
   const prov=provider(); const isDraft=S.view===sc().draft; const p=isDraft?draftPlan():null;
-  const r=role(); const total=S.tab==='TOTAL';
+  const r=role(); const total=S.tab==='TOTAL'; const outlook=S.view==='OUT';
+  const c27=curIdx(2027); const B=S.plans.B27;
   const ids=viewLines().filter(id=>{const l=lineOf(id);return r.sees(PROGRAMS[l.prog].fund,l.ch);});
   let rowsSrc;
   if(total){
@@ -571,106 +616,133 @@ function renderGrid(){
     rowsSrc=ids.filter(id=>lineOf(id).ch===S.tab).map(id=>{const l=lineOf(id);return {key:id,prog:l.prog,acct:l.acct,members:[id]};});
   }
   const showHelp=isDraft&&!total;
-  const cols=12;
+  const nCmp=outlook?5:0;
+  const ncol=1+(showHelp?1:0)+12+1+nCmp;
   let h='<thead><tr><th class="lab">Fund / Program / Account</th>';
-  if(showHelp) h+='<th style="text-align:right">Spread helper<span class="src">'+(p.kind==='forecast'?'Budget annual':'Last 12 months actuals')+'</span></th>';
-  for(let m=0;m<cols;m++){
+  if(showHelp) h+='<th style="text-align:right">Spread helper<br><span class="src">'+(p.kind==='forecast'?'Budget annual':'Last 12 months activity')+'</span></th>';
+  for(let m=0;m<12;m++){
     const hd=prov.head(m);
     h+='<th class="'+(hd.act?'act':'')+'"><span class="p">'+fyLab(prov.fy)+'-'+pp(m)+'</span><br>'+prov.fy+' '+MONTHS[m]+'<br>'+hd.src+'</th>';
   }
-  h+='<th style="text-align:right"><span class="p">'+fyLab(prov.fy)+'</span><br>Annual<br>&nbsp;</th></tr></thead><tbody>';
+  h+='<th style="text-align:right"><span class="p">'+fyLab(prov.fy)+'</span><br>'+(outlook?'Outlook':'Annual')+'<br>full year</th>';
+  if(outlook){
+    const cr=c27>0?'P01–'+pp(c27-1):'none yet';
+    const gr=c27<12?pp(c27)+'–P12':'none';
+    [['Actual','year to date',cr],['To go','latest Forecast',gr],['Budget','full year',fyLab(2027)],['Outlook','vs Budget','full year'],['Actual','vs Budget','year to date']].forEach((x,i)=>{
+      h+='<th class="cmp'+(i===0?' first':'')+'"><span class="p">'+x[0]+'</span><br>'+x[1]+'<br>'+x[2]+'</th>';
+    });
+  }
+  h+='</tr></thead><tbody>';
 
-  const valsOf=row=>{const out=[];const cls=[];for(let m=0;m<12;m++){let v=0,act=false,borrow=false;row.members.forEach(id=>{const x=prov.val(id,m);v+=x.v||0;act=!!x.act;borrow=!!x.borrow;});out.push(v);cls.push(act?'act':borrow?'borrow':'');}return {v:out,cls:cls};};
-  const sign=acct=>ACCOUNTS[acct].type==='rev'?1:-1;
+  const agg=list=>{const v=Array(12).fill(0),cls=Array(12).fill('');list.forEach(id=>{for(let m=0;m<12;m++){const x=prov.val(id,m);v[m]+=x.v||0;if(x.act)cls[m]='act';else if(x.borrow)cls[m]='borrow';}});return {v:v,cls:cls};};
+  const cmpOf=list=>{ if(!outlook) return null; let act=0,go=0,bud=0,budY=0; list.forEach(id=>{for(let m=0;m<12;m++){const x=prov.val(id,m).v||0; if(m<c27) act+=x; else go+=x; const bb=(B.values[id]||[])[m]||0; bud+=bb; if(m<c27) budY+=bb;}}); return [act,go,bud,act+go-bud,act-budY]; };
+  const blank=showHelp?'<td class="help"></td>':'';
+  const idsOf=rows=>rows.reduce((a,x)=>a.concat(x.members),[]);
+  const dataRow=(cls,label,list)=>{const a=agg(list);return rowHtml(cls,label,a.v,{cls:a.cls},blank,cmpOf(list),0);};
+  const headRow=(cls,label)=>rowHtml(cls,label,null,null,blank,outlook?Array(nCmp).fill(null):null,0);
 
   let funds=FUND_ORDER.filter(f=>rowsSrc.some(x=>PROGRAMS[x.prog].fund===f));
   if(isDraft&&!total){ const add=(S.added[p.id+'|'+S.tab]||[]); add.forEach(f=>{ if(!funds.includes(f)) funds.push(f); }); funds=FUND_ORDER.filter(f=>funds.includes(f)); }
-  const grand=Array(12).fill(0);
   let body='';
   funds.forEach(f=>{
     const fr=rowsSrc.filter(x=>PROGRAMS[x.prog].fund===f);
-    const fsum=Array(12).fill(0);
-    fr.forEach(x=>{const vv=valsOf(x).v;const s=sign(x.acct);vv.forEach((v,m)=>{fsum[m]+=s*v;});});
-    fsum.forEach((v,m)=>{grand[m]+=v;});
     const st=FUNDS[f].state;
     const chip=st==='preactive'?'<span class="chip c-pre" title="Plannable; money is refused until the EAM activates it">Pre-active · plannable</span>':st==='suspended'?'<span class="chip c-susp" title="Allowed with a warning">Suspended · warning</span>':st==='cancelled'?'<span class="chip c-canc">Cancelled</span>':'';
-    body+=rowHtml('fund',esc(FUNDS[f].name)+chip+'<span class="chip c-net">net</span>',fsum,null,showHelp?'<td class="help"></td>':'');
+    body+=headRow('fund',esc(FUNDS[f].name)+chip);
     let progs=PROG_ORDER.filter(pg=>PROGRAMS[pg].fund===f&&fr.some(x=>x.prog===pg));
-    if(isDraft&&!total&&canAddIn(p,f,S.tab)) progs=PROG_ORDER.filter(pg=>PROGRAMS[pg].fund===f);
+    const canAdd=isDraft&&!total&&canAddIn(p,f,S.tab);
+    if(canAdd) progs=PROG_ORDER.filter(pg=>PROGRAMS[pg].fund===f);
     progs.forEach(pg=>{
-      const pr=fr.filter(x=>x.prog===pg).sort((a,b)=>a.acct.localeCompare(b.acct));
-      const psum=Array(12).fill(0);
-      pr.forEach(x=>{const vv=valsOf(x).v;const s=sign(x.acct);vv.forEach((v,m)=>{psum[m]+=s*v;});});
-      const canAdd=isDraft&&!total&&canAddIn(p,f,S.tab);
+      const pr=fr.filter(x=>x.prog===pg);
       const addBtn=canAdd?'<button type="button" class="add" data-act="pick" data-prog="'+pg+'">+ Add account</button>':'';
-      body+=rowHtml('prog',esc(PROGRAMS[pg].name)+(PROGRAMS[pg].def?'<span class="chip c-def">Fund default</span>':'')+'<span class="chip c-net">net</span>'+addBtn,psum,null,showHelp?'<td class="help"></td>':'');
-      if(S.panel&&S.panel.type==='pick'&&S.panel.prog===pg&&!total) body+=pickerRow(p,pg,showHelp);
-      pr.forEach(x=>{
-        const vv=valsOf(x);
-        const id=x.members[0];
-        const inv=isDraft&&!total&&isInvalid(p,id);
-        const ed=isDraft&&!total&&editableLine(p,id);
-        let lab='<span class="code">'+x.acct+'</span>'+esc(ACCOUNTS[x.acct].name);
-        if(inv) lab+='<span class="msg">Invalid: the Fund was cancelled. Move to another Program or clear before submitting.'+(ed?' <button type="button" class="btn sm" data-act="clear" data-id="'+esc(id)+'">Clear line</button>':'')+'</span>';
-        let helpCell='';
-        if(showHelp){
-          const hv=helperOf(p,id); const rem=remaining(p);
-          let note=p.kind==='budget'&&p.fy===2028?'<span class="note">'+curIdx(2027)+' of 12 months · none before launch</span>':'';
-          let btn='';
-          if(ed&&!inv){
-            if(rem.length) btn='<button type="button" class="btn sm" data-act="spread" data-id="'+esc(id)+'">Spread</button>';
-            else { btn='<button type="button" class="btn sm" disabled title="No remaining month to spread into">Spread</button>'; note='<span class="note">No remaining month to spread into</span>'; }
+      body+=headRow('prog',esc(PROGRAMS[pg].name)+(PROGRAMS[pg].def?'<span class="chip c-def">Fund default</span>':'')+addBtn);
+      if(S.panel&&S.panel.type==='pick'&&S.panel.prog===pg&&!total) body+=pickerRow(p,pg,ncol);
+      ['rev','exp'].forEach(t=>{
+        const tr=pr.filter(x=>ACCOUNTS[x.acct].type===t).sort((a,b)=>a.acct.localeCompare(b.acct));
+        if(!tr.length) return;
+        body+=dataRow('grp',t==='rev'?'Revenue':'Expense',idsOf(tr));
+        tr.forEach(x=>{
+          const a=agg(x.members);
+          const id=x.members[0];
+          const inv=isDraft&&!total&&isInvalid(p,id);
+          const ed=isDraft&&!total&&UNIT==='one'&&editableLine(p,id);
+          const norm=SIGN(x.acct);
+          let lab='<span class="code">'+x.acct+'</span>'+esc(ACCOUNTS[x.acct].name);
+          if(inv) lab+='<span class="msg">Invalid: the Fund was cancelled. Move to another Program or clear before submitting.'+(editableLine(p,id)?' <button type="button" class="btn sm" data-act="clear" data-id="'+esc(id)+'">Clear line</button>':'')+'</span>';
+          let helpCell='';
+          if(showHelp){
+            const hv=helperOf(p,id); const rem=remaining(p);
+            let note=p.kind==='budget'&&p.fy===2028?'<span class="note">'+curIdx(2027)+' of 12 months · none before launch</span>':'';
+            let btn='';
+            if(ed&&!inv){
+              if(rem.length) btn='<button type="button" class="btn sm" data-act="spread" data-id="'+esc(id)+'">Spread</button>';
+              else { btn='<button type="button" class="btn sm" disabled title="No remaining month to spread into">Spread</button>'; note='<span class="note">No remaining month to spread into</span>'; }
+            }
+            helpCell='<td class="help"><span class="hv'+(hv*norm<0?' against':'')+'">'+fmt(hv)+'</span>'+btn+note+'</td>';
           }
-          helpCell='<td class="help"><span class="hv'+(hv<0?' neg':'')+'">'+fmt(hv)+'</span>'+btn+note+'</td>';
-        }
-        body+=rowHtml('acct'+(inv?' invalid':''),lab,vv.v,{cls:vv.cls,ed:ed&&!inv,id:id,p:p},helpCell);
-        if(S.panel&&S.panel.type==='spread'&&S.panel.id===id&&!total) body+=spreadRow(p,id,showHelp);
+          body+=rowHtml('acct'+(inv?' invalid':''),lab,a.v,{cls:a.cls,ed:ed&&!inv,id:id,p:p},helpCell,cmpOf(x.members),norm);
+          if(S.panel&&S.panel.type==='spread'&&S.panel.id===id&&!total) body+=spreadRow(p,id,ncol);
+        });
       });
+      if(pr.length) body+=dataRow('net','Net · '+esc(PROGRAMS[pg].name),idsOf(pr));
     });
+    if(fr.length) body+=dataRow('fnet','Net · '+esc(FUNDS[f].name),idsOf(fr));
   });
-  if(!funds.length) body+='<tr><td class="lab" colspan="'+(14+(showHelp?1:0))+'" style="color:var(--muted);padding:14px">No lines here yet.</td></tr>';
-  body+=rowHtml('gtot','Total, net'+(total?' · all visible chapters':' · '+esc(CHAPTERS[S.tab]||'')),grand,null,showHelp?'<td class="help"></td>':'');
+  if(!funds.length) body+='<tr><td class="lab" colspan="'+ncol+'" style="color:var(--muted);padding:14px">No lines here yet.</td></tr>';
+  const where=total?'all visible chapters':(CHAPTERS[S.tab]||'');
+  const revIds=idsOf(rowsSrc.filter(x=>ACCOUNTS[x.acct].type==='rev'));
+  const expIds=idsOf(rowsSrc.filter(x=>ACCOUNTS[x.acct].type==='exp'));
+  body+=dataRow('gtot first','Total revenue · '+esc(where),revIds);
+  body+=dataRow('gtot','Total expense · '+esc(where),expIds);
+  body+=dataRow('gtot net','Net · '+esc(where),revIds.concat(expIds));
   if(isDraft&&!total){
     const addable=FUND_ORDER.filter(f=>!funds.includes(f)&&canAddIn(p,f,S.tab));
-    if(addable.length) body+='<tr><td class="lab" colspan="1" style="padding:8px 10px"><label style="font-size:12.5px;color:var(--muted);display:flex;gap:6px;align-items:center" for="addFund">Plan another Fund here <select id="addFund" style="border:1px solid var(--border-strong);border-radius:6px;padding:3px 6px;background:var(--surface);max-width:180px"><option value="">Choose…</option>'+addable.map(f=>'<option value="'+f+'">'+esc(FUNDS[f].name)+(FUNDS[f].state==='preactive'?' (pre-active)':FUNDS[f].state==='suspended'?' (suspended)':'')+'</option>').join('')+'</select></label><span style="display:block;font-size:11px;color:var(--faint);white-space:normal">Cancelled, proposed and rejected Funds are not offered.</span></td><td colspan="'+(13+(showHelp?1:0))+'"></td></tr>';
+    if(addable.length) body+='<tr><td class="lab" style="padding:8px 10px"><label style="font-size:12.5px;color:var(--muted);display:flex;gap:6px;align-items:center" for="addFund">Plan another Fund here <select id="addFund" style="border:1px solid var(--border-strong);border-radius:6px;padding:3px 6px;background:var(--surface);max-width:180px"><option value="">Choose…</option>'+addable.map(f=>'<option value="'+f+'">'+esc(FUNDS[f].name)+(FUNDS[f].state==='preactive'?' (pre-active)':FUNDS[f].state==='suspended'?' (suspended)':'')+'</option>').join('')+'</select></label><span style="display:block;font-size:11px;color:var(--faint);white-space:normal">Cancelled, proposed and rejected Funds are not offered.</span></td><td colspan="'+(ncol-1)+'"></td></tr>';
   }
   $('grid').innerHTML=h+body+'</tbody>';
 }
-function rowHtml(cls,label,vals,edit,helpCell){
+function rowHtml(cls,label,vals,edit,helpCell,extras,norm){
   let s='<tr class="'+cls+'"><td class="lab">'+label+'</td>'+(helpCell||'');
   for(let m=0;m<12;m++){
-    const v=vals[m]; const c=edit?edit.cls[m]:'';
+    if(!vals){ s+='<td class="v"></td>'; continue; }
+    const v=vals[m]; const c=edit&&edit.cls?edit.cls[m]:'';
+    const ag=norm&&v*norm<0?' against':'';
     const editableMonth=edit&&edit.ed&&m>=edit.p.cov[0]&&m<=edit.p.cov[1];
     if(editableMonth){
-      s+='<td class="edit"><input class="cell'+(v<0?' neg':'')+'" id="c-'+esc(edit.id)+'-'+m+'" data-id="'+esc(edit.id)+'" data-m="'+m+'" inputmode="numeric" aria-label="'+esc(edit.id)+' '+pp(m)+'" value="'+(v?v.toLocaleString('en-US'):'')+'" placeholder="–"></td>';
-    } else s+='<td class="v '+c+(v<0?' neg':'')+'">'+fmt(v)+'</td>';
+      s+='<td class="edit"><input class="cell'+ag+'" id="c-'+esc(edit.id)+'-'+m+'" data-id="'+esc(edit.id)+'" data-m="'+m+'" inputmode="decimal" aria-label="'+esc(edit.id)+' '+pp(m)+'" value="'+fmtEdit(v)+'" placeholder="–"></td>';
+    } else s+='<td class="v '+c+ag+'">'+fmt(v)+'</td>';
   }
-  const t=sum(vals);
-  s+='<td class="tot'+(t<0?' neg':'')+'">'+fmt(t)+'</td></tr>';
-  return s;
+  if(vals){ const t=sum(vals); s+='<td class="tot'+(norm&&t*norm<0?' against':'')+'">'+fmt(t)+'</td>'; } else s+='<td class="tot"></td>';
+  if(extras) extras.forEach((x,i)=>{ const bad=x!==null&&i>=3&&x<0; s+='<td class="cmp'+(i===0?' first':'')+(bad?' unfav':'')+'">'+(x===null?'':fmt(x))+'</td>'; });
+  return s+'</tr>';
 }
-function spreadRow(p,id,showHelp){
+function spreadRow(p,id,ncol){
   const rem=remaining(p); const atd=actualsToDate(p,id);
   const amt=S.panel.amount; const to=amt-atd; const parts=spreadPlan(to,rem);
   const c=curIdx(p.fy);
-  const l=lineOf(id);
-  const src=p.kind==='forecast'?'Pre-filled with this row’s FYE27 Budget annual amount. You may change it.':'Pre-filled with this row’s actuals for the last 12 months ('+curIdx(2027)+' of 12 recorded). You may change it.';
-  let prev=rem.map((m,i)=>'<span class="'+(parts[i]<0?'neg':'')+'"><b>'+pp(m)+'</b>'+fmt(parts[i])+'</span>').join('');
-  return '<tr class="panel"><td colspan="'+(14+(showHelp?1:0))+'"><div class="panelbox">'+
+  const l=lineOf(id); const norm=SIGN(l.acct);
+  const src=p.kind==='forecast'?'Pre-filled with this row’s FYE27 Budget annual amount. You may change it.':'Pre-filled with this row’s activity for the last 12 months ('+curIdx(2027)+' of 12 recorded). You may change it.';
+  const prev=previewHtml(parts,rem,norm);
+  return '<tr class="panel"><td colspan="'+ncol+'"><div class="panelbox">'+
     '<div class="f" style="flex-basis:100%"><span class="big">Spread · '+esc(l.acct+' '+ACCOUNTS[l.acct].name)+' · '+esc(PROGRAMS[l.prog].name)+' · '+esc(CHAPTERS[l.ch])+'</span></div>'+
-    '<div class="f"><label class="k" for="spreadAmt">Annual amount</label><input class="amt" id="spreadAmt" inputmode="numeric" value="'+amt.toLocaleString('en-US')+'"><span class="k" style="max-width:260px">'+src+'</span></div>'+
-    '<div class="f"><span class="k">Actuals to date'+(c>0&&p.fy<=2027?' ('+pp(0)+'–'+pp(c-1)+')':'')+'</span><span class="big">'+fmt(atd)+'</span><span class="k">Completed months only</span></div>'+
-    '<div class="f"><span class="k">To spread</span><span class="big'+(to<0?' neg':'')+'" id="spreadTo" style="'+(to<0?'color:var(--neg)':'')+'">'+fmt(to)+'</span><span class="k">Annual amount less actuals to date</span></div>'+
-    '<div class="f" style="flex:1;min-width:260px"><span class="k">Across '+rem.length+' remaining month'+(rem.length===1?'':'s')+' ('+pp(rem[0])+'–'+pp(rem[rem.length-1])+'); leftover dollars go to the last month</span><div class="prev num" id="spreadPrev">'+prev+'</div>'+(parts.some(x=>x<0)?'<span class="k" style="color:var(--neg)">Some months come out negative. They are allowed and shown in red.</span>':'')+'</div>'+
+    '<div class="f"><label class="k" for="spreadAmt">Annual amount</label><input class="amt" id="spreadAmt" inputmode="decimal" value="'+fmtEdit(amt)+'"><span class="k" style="max-width:260px">'+src+(norm<0?' Expenses are entered as negative, as shown.':'')+'</span></div>'+
+    '<div class="f"><span class="k">Actuals to date'+(c>0&&p.fy<=2027?' ('+pp(0)+'–'+pp(c-1)+')':'')+'</span><span class="big">'+fmtExact(atd)+'</span><span class="k">Completed months only</span></div>'+
+    '<div class="f"><span class="k">To spread</span><span class="big" id="spreadTo">'+fmtExact(to)+'</span><span class="k">Annual amount less actuals to date</span></div>'+
+    '<div class="f" style="flex:1;min-width:260px"><span class="k">Across '+rem.length+' remaining month'+(rem.length===1?'':'s')+' ('+pp(rem[0])+'–'+pp(rem[rem.length-1])+'); leftover cents go to the last month</span><div class="prev num" id="spreadPrev">'+prev+'</div></div>'+
     '<div class="row"><button type="button" class="btn primary sm" data-act="applySpread" data-id="'+esc(id)+'">Apply spread to '+pp(rem[0])+'–'+pp(rem[rem.length-1])+'</button><button type="button" class="btn sm" data-act="closePanel">Cancel</button><span class="k" style="font-size:11.5px;color:var(--muted);align-self:center">Replaces those months’ values. Recorded like any other edit.</span></div>'+
     '</div></td></tr>';
 }
-function pickerRow(p,pg,showHelp){
+function previewHtml(parts,rem,norm){
+  const chips=rem.map((m,i)=>'<span class="'+(parts[i]*norm<0?'against':'')+'"><b>'+pp(m)+'</b>'+fmtExact(parts[i])+'</span>').join('');
+  const warn=parts.some(x=>x*norm<0)?'<span class="k" style="color:var(--neg);flex-basis:100%">Some months come out against this row’s normal direction. They are allowed and shown in red.</span>':'';
+  return chips+warn;
+}
+function pickerRow(p,pg,ncol){
   const present=new Set(p.lines.filter(id=>{const l=lineOf(id);return l.prog===pg&&l.ch===S.tab;}).map(id=>lineOf(id).acct));
   const q=(S.panel.q||'').toLowerCase();
   const avail=Object.keys(ACCOUNTS).filter(a=>ACCOUNTS[a].budget&&!present.has(a)&&(a+' '+ACCOUNTS[a].name).toLowerCase().includes(q));
   const off=Object.keys(ACCOUNTS).filter(a=>!ACCOUNTS[a].budget).length;
-  return '<tr class="panel"><td colspan="'+(14+(showHelp?1:0))+'"><div class="panelbox"><div class="pick"><label class="k" for="pickQ" style="font-size:12px;color:var(--muted)">Add an account to '+esc(PROGRAMS[pg].name)+' · '+esc(CHAPTERS[S.tab])+'</label><input id="pickQ" placeholder="Search by number or name" value="'+esc(S.panel.q||'')+'" autocomplete="off"><ul>'+
+  return '<tr class="panel"><td colspan="'+ncol+'"><div class="panelbox"><div class="pick"><label class="k" for="pickQ" style="font-size:12px;color:var(--muted)">Add an account to '+esc(PROGRAMS[pg].name)+' · '+esc(CHAPTERS[S.tab])+'</label><input id="pickQ" placeholder="Search by number or name" value="'+esc(S.panel.q||'')+'" autocomplete="off"><ul>'+
     (avail.length?avail.map(a=>'<li><button type="button" data-act="addAcct" data-prog="'+pg+'" data-acct="'+a+'"><span class="num" style="color:var(--faint)">'+a+'</span> '+esc(ACCOUNTS[a].name)+' <span style="color:var(--faint);font-size:11.5px">'+(ACCOUNTS[a].type==='rev'?'revenue':'expense')+'</span></button></li>').join(''):'<li style="padding:8px 10px;color:var(--muted)">No matching account.</li>')+
     '</ul><div class="off">'+off+' accounts are hidden because they are not available for budgeting.</div><div class="row" style="margin-top:8px"><button type="button" class="btn sm" data-act="closePanel">Close</button></div></div></div></td></tr>';
 }
@@ -686,10 +758,10 @@ function renderBelow(d){
     const n=d.lines.filter(id=>secKey(fundOf(id),lineOf(id).ch)===k).length;
     const st=s.status==='submitted'?'<span class="pill p-approved">Submitted</span><span class="small">'+esc(s.by)+' · '+esc(s.at)+'</span>':s.status==='reopened'?'<span class="pill p-returned">Reopened</span><span class="small">Back with its preparers</span>':'<span class="pill p-draft">Open</span>';
     let acts='';
-    if(canSubmit(d,k)) acts+='<button type="button" class="btn sm" data-act="submit" data-k="'+k+'" '+(inv?'disabled':'')+'>'+(r.level>1&&!(f==='YTH'&&c==='SJ'&&S.role==='fmSJ')?'Submit (step in)':'Submit')+'</button>';
+    if(canSubmit(d,k)) acts+='<button type="button" class="btn sm" data-act="submit" data-k="'+k+'" '+(inv?'disabled':'')+'>'+(r.level>1?'Submit (step in)':'Submit')+'</button>';
     if(canWithdraw(d,k)) acts+='<button type="button" class="btn sm" data-act="withdraw" data-k="'+k+'">Withdraw</button>';
     if(canReopen(d,k)) acts+='<button type="button" class="btn sm" data-act="reopen" data-k="'+k+'">Reopen to preparer</button>';
-    if(s.status==='submitted'&&editableLineInSection(d,k)&&d.state==='draft') acts+='<span class="small">You may still edit it (step in)</span>';
+    if(s.status==='submitted'&&d.state==='draft'&&r.level>(s.level||0)&&r.edits(f,c)) acts+='<span class="small">You may still edit it (step in)</span>';
     if(inv) acts+='<span class="small" style="color:var(--danger)">'+inv+' invalid line'+(inv>1?'s':'')+' block submission</span>';
     t+='<tr><td><button type="button" class="link" data-tab="'+c+'">'+esc(FUNDS[f].name)+'</button><span class="small">'+esc(CHAPTERS[c])+'</span></td><td class="num">'+n+'</td><td>'+st+'</td><td><div class="acts">'+(acts||'<span class="small">—</span>')+'</div></td></tr>';
   });
@@ -710,29 +782,28 @@ function renderBelow(d){
   a+='</div>'+logCard()+'</div>';
   $('below').innerHTML=t+a;
 }
-function editableLineInSection(d,k){ return d.lines.some(id=>secKey(fundOf(id),lineOf(id).ch)===k&&(function(){const save=S.tab;S.tab=lineOf(id).ch;const r=editableLine(d,id);S.tab=save;return r;})()); }
 function logCard(){
   return '<div class="card"><h2>Activity</h2><div class="sub">Every change is recorded with who made it.</div><ul class="log">'+(S.log.length?S.log.map(e=>'<li><span class="w num">'+esc(e.at)+'</span><span><b>'+esc(e.who)+'</b> · '+esc(e.what)+'</span></li>').join(''):'<li><span class="w">—</span><span class="w">Nothing yet in this session.</span></li>')+'</ul></div>';
 }
 
 /* events */
-function parseAmt(s){ s=String(s).replace(/[,\s$]/g,'').replace(/−/g,'-'); if(s===''||s==='–'||s==='-') return 0; if(!/^-?\d+$/.test(s)) return null; return parseInt(s,10); }
 function rerenderKeepFocus(){
   setTimeout(()=>{
-    const a=document.activeElement; const fid=a&&a.id?a.id:null; const sel=a&&a.select?true:false;
+    const a=document.activeElement; const fid=a&&a.id?a.id:null;
     render();
-    if(fid){ const e=document.getElementById(fid); if(e){ e.focus(); if(sel&&e.select) e.select(); } }
+    if(fid){ const e=document.getElementById(fid); if(e){ e.focus(); if(e.select) e.select(); } }
   },0);
 }
 document.addEventListener('change',e=>{
   const t=e.target;
   if(t.id==='scn'){ S=freshState(t.value,S.role); render(); return; }
   if(t.id==='role'){ S.role=t.value; S.panel=null; render(); return; }
+  if(t.id==='dec'){ DEC=t.checked; render(); return; }
   if(t.id==='addFund'&&t.value){ const k=draftPlan().id+'|'+S.tab; (S.added[k]=S.added[k]||[]).push(t.value); render(); return; }
   if(t.classList.contains('cell')){
     const p=draftPlan(); const id=t.dataset.id; const m=+t.dataset.m; const v=parseAmt(t.value);
-    if(v===null){ t.value=(p.values[id][m]||'')?p.values[id][m].toLocaleString('en-US'):''; return; }
-    if(v!==(p.values[id][m]||0)){ const l=lineOf(id); log('Edited '+l.acct+' '+ACCOUNTS[l.acct].name+' · '+PROGRAMS[l.prog].name+' · '+CHAPTERS[l.ch]+' · '+pp(m)+': '+fmt(p.values[id][m]||0)+' → '+fmt(v)); p.values[id][m]=v; }
+    if(v===null){ t.value=fmtEdit(p.values[id][m]||0); return; }
+    if(v!==(p.values[id][m]||0)){ const l=lineOf(id); log('Edited '+l.acct+' '+ACCOUNTS[l.acct].name+' · '+PROGRAMS[l.prog].name+' · '+CHAPTERS[l.ch]+' · '+pp(m)+': '+fmtExact(p.values[id][m]||0)+' → '+fmtExact(v)); p.values[id][m]=v; }
     rerenderKeepFocus();
   }
 });
@@ -740,13 +811,14 @@ document.addEventListener('keydown',e=>{ if(e.key==='Enter'&&e.target.classList&
 document.addEventListener('focusin',e=>{ if(e.target.classList&&e.target.classList.contains('cell')) e.target.select(); });
 document.addEventListener('input',e=>{
   const t=e.target;
-  if(t.id==='spreadAmt'&&S.panel){ const v=parseAmt(t.value); if(v!==null){ S.panel.amount=v; const p=draftPlan(); const rem=remaining(p); const to=v-actualsToDate(p,S.panel.id); const parts=spreadPlan(to,rem); const toEl=$('spreadTo'); toEl.textContent=fmt(to); toEl.style.color=to<0?'var(--neg)':''; $('spreadPrev').innerHTML=rem.map((m,i)=>'<span class="'+(parts[i]<0?'neg':'')+'"><b>'+pp(m)+'</b>'+fmt(parts[i])+'</span>').join(''); } }
+  if(t.id==='spreadAmt'&&S.panel){ const v=parseAmt(t.value); if(v!==null){ S.panel.amount=v; const p=draftPlan(); const rem=remaining(p); const to=v-actualsToDate(p,S.panel.id); const parts=spreadPlan(to,rem); $('spreadTo').textContent=fmtExact(to); $('spreadPrev').innerHTML=previewHtml(parts,rem,SIGN(lineOf(S.panel.id).acct)); } }
   if(t.id==='pickQ'&&S.panel){ S.panel.q=t.value; const pos=t.selectionStart; render(); const e2=$('pickQ'); if(e2){ e2.focus(); e2.setSelectionRange(pos,pos);} }
   if(t.id==='retReason'&&S.panel){ S.panel.reason=t.value; }
 });
 document.addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b||b.disabled) return;
   if(b.id==='reset'){ S=freshState(S.scn,S.role); render(); return; }
+  if(b.dataset.unit){ UNIT=b.dataset.unit; S.panel=null; render(); return; }
   if(b.dataset.view){ S.view=b.dataset.view; S.panel=null; S.tab=null; render(); return; }
   if(b.dataset.tab&&!b.dataset.act){ S.tab=b.dataset.tab; S.panel=null; render(); return; }
   const act=b.dataset.act; if(!act) return;
@@ -757,7 +829,7 @@ document.addEventListener('click',e=>{
     const id=b.dataset.id; const rem=remaining(d); const to=S.panel.amount-actualsToDate(d,id); const parts=spreadPlan(to,rem);
     rem.forEach((m,i)=>{ d.values[id][m]=parts[i]; });
     d.helper[id]=S.panel.amount;
-    const l=lineOf(id); log('Applied spread on '+l.acct+' '+ACCOUNTS[l.acct].name+' · '+PROGRAMS[l.prog].name+' · '+CHAPTERS[l.ch]+': '+fmt(to)+' over '+rem.length+' months');
+    const l=lineOf(id); log('Applied spread on '+l.acct+' '+ACCOUNTS[l.acct].name+' · '+PROGRAMS[l.prog].name+' · '+CHAPTERS[l.ch]+': '+fmtExact(to)+' over '+rem.length+' months');
     S.panel=null; render(); return;
   }
   if(act==='closePanel'){ S.panel=null; render(); return; }
@@ -785,6 +857,7 @@ document.addEventListener('click',e=>{
 S=freshState('A','eom');
 render();
 })();
+
 </script>
 
 </body>

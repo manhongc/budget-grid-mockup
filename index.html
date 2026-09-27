@@ -432,12 +432,12 @@ function freshState(scn,role){
     LINES.forEach(l=>{ if(FUNDS[PROGRAMS[l.prog].fund].state==='cancelled') return; if(p12m(l.id,9)===0) return; d.values[l.id]=flat(0);d.lines.push(l.id);});
   }
   d.sections={};d.helper={};d.orig=JSON.parse(JSON.stringify(d.values));d.history=[];
+  if(d.kind==='forecast'){ d.lines.forEach(id=>{ d.sections[secKey(fundOf(id),lineOf(id).ch)]={status:'copied'}; }); }
   if(scn==='A'){
     Object.assign(d.sections,{
-      'GEN|HO':{status:'submitted',by:'Fund Manager · General Operating',level:2,at:'2027-05-10'},
       'GEN|SJ':{status:'submitted',by:'Fund Manager · General Operating × San Gabriel',level:1,at:'2027-05-11'},
-      'YTH|LA':{status:'submitted',by:'Fund Manager · Youth Education × Irvine',level:1,at:'2027-05-11'},
-      'TMP|HO':{status:'submitted',by:'Fund Manager · Temple Building',level:2,at:'2027-05-09'}
+      'YTH|SJ':{status:'open'},
+      'DIS|HO':{status:'open'}
     });
   }
   plans[d.id]=d;
@@ -480,7 +480,7 @@ function canSubmit(p,k){
   return r.level>=1&&r.submits(f,c)&&(p.state==='draft'||p.state==='returned')&&(s.status==='open'||s.status==='reopened');
 }
 function canWithdraw(p,k){ const r=role(); const [f,c]=k.split('|'); const s=p.sections[k]; return p.state==='draft'&&s.status==='submitted'&&r.level>=1&&r.submits(f,c)&&r.level>=(s.level||0); }
-function canReopen(p,k){ const s=p.sections[k]; if(s.status==='copied') return (S.role==='eom'||S.role==='eam')&&p.state==='draft'; return S.role==='eom'&&(p.state==='draft'||p.state==='returned')&&s.status==='submitted'; }
+function canReopen(p,k){ const s=p.sections[k]; if(s.status==='copied') return S.role==='eam'&&p.state==='draft'; return S.role==='eom'&&(p.state==='draft'||p.state==='returned')&&s.status==='submitted'; }
 function finalBlock(p){
   const keys=Object.keys(p.sections); const open=keys.filter(k=>p.sections[k].status!=='submitted'&&p.sections[k].status!=='copied').length;
   const inv=p.lines.filter(id=>isInvalid(p,id)).length; const why=[];
@@ -617,6 +617,7 @@ function renderBanners(d){
     if(d.state==='draft'&&d.history.length){ const hv=d.history[d.history.length-1]; b.push(['info','Version '+d.version+' was duplicated by the Entity Accounting Manager from approved version '+hv.v+', which stays as a historical document'+(S.current===hv.snap?' and remains the current Forecast until this version is approved':'')+'. Its sections start as copied and count as submitted; open only the sections that need to change. Highlighted cells differ from the copied values.']); }
     if(d.state==='approved') b.push(['ok',d.kind==='forecast'?d.name+' is approved and is now the current Forecast. The Outlook takes its plan months from it.':d.name+' is approved and final.']);
     if(d.state!=='approved'&&d.lines.some(id=>isInvalid(d,id)&&ROLES[S.role].sees(fundOf(id),lineOf(id).ch))) b.push(['danger','Wildfire Relief Fund 2026 was cancelled after '+(d.from||'the prior version')+'. Its lines carried into this version are invalid. They block that section’s submission, the final submission and approval until they are moved to another Program or cleared.']);
+    if(d.kind==='forecast'&&!d.history.length&&d.state==='draft') b.push(['','Every section started as copied from '+esc(d.from)+'. The Entity Accounting Manager opens only the sections that need to change, so the status column shows what changed.']);
     if(d.kind==='budget'&&d.fy===2028) b.push(['','Budget FYE28 starts with a row for every account that had activity in the last 12 months. Its cells start at “–”. Each row’s annual amount to spread starts from that activity. Recording began at launch on 2027-01-01, so for this first Budget the last 12 months hold '+curIdx(2027)+' months of activity; from FYE29 on they hold all 12.']);
     if(remaining(d).length===0) b.push(['warn','Every month of this plan has passed, so there is no month left to spread into. Spread is unavailable; type values into the cells instead (item 82).']);
   } else if(S.view!=='OUT'){
@@ -781,7 +782,7 @@ function renderBelow(d){
   keys.forEach(k=>{
     const [f,c]=k.split('|'); const s=d.sections[k]; const inv=sectionInvalidCount(d,k);
     const n=d.lines.filter(id=>secKey(fundOf(id),lineOf(id).ch)===k).length;
-    const st=s.status==='copied'?'<span class="pill p-final">Copied</span><span class="small">Unchanged from version '+(d.version-1)+'; counts as submitted</span>':s.status==='submitted'?'<span class="pill p-approved">Submitted</span><span class="small">'+esc(s.by)+' · '+esc(s.at)+'</span>':s.status==='reopened'?'<span class="pill p-returned">Reopened</span><span class="small">Back with its preparers</span>':'<span class="pill p-draft">Open</span>';
+    const st=s.status==='copied'?'<span class="pill p-final">Copied</span><span class="small">Unchanged from '+esc(d.from||'the prior version')+'; counts as submitted</span>':s.status==='submitted'?'<span class="pill p-approved">Submitted</span><span class="small">'+esc(s.by)+' · '+esc(s.at)+'</span>':s.status==='reopened'?'<span class="pill p-returned">Reopened</span><span class="small">Back with its preparers</span>':'<span class="pill p-draft">Open</span>';
     let acts='';
     if(canSubmit(d,k)) acts+='<button type="button" class="btn sm" data-act="submit" data-k="'+k+'" '+(inv?'disabled':'')+'>'+(r.level>1?'Submit (step in)':'Submit')+'</button>';
     if(canWithdraw(d,k)) acts+='<button type="button" class="btn sm" data-act="withdraw" data-k="'+k+'">Withdraw</button>';

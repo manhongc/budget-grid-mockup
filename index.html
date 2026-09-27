@@ -206,6 +206,7 @@ table.sec{width:100%;border-collapse:collapse;font-size:12.5px}
 .g tr.grp.rev td.lab{--grp-edge:var(--rev-edge)}
 .g tr.grp.exp td.lab{--grp-edge:var(--exp-edge)}
 .g .tog{border:0;background:transparent;padding:0 6px 0 0;font-size:11px;color:var(--muted);cursor:pointer;width:16px}
+.g .nettag{margin-left:8px;font-size:10.5px;font-weight:500;font-style:italic;color:var(--faint)}
 .g .cnt{margin-left:8px;font-size:10.5px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--faint)}
 .g tr.acct td{font-weight:400}
 .g tr.acct td.lab{color:var(--text)}
@@ -681,14 +682,15 @@ function renderGrid(){
     const fr=rowsSrc.filter(x=>PROGRAMS[x.prog].fund===f);
     const st=FUNDS[f].state;
     const chip=st==='preactive'?'<span class="chip c-pre" title="Plannable; money is refused until the EAM activates it">Pre-active · plannable</span>':st==='suspended'?'<span class="chip c-susp" title="Allowed with a warning">Suspended · warning</span>':st==='cancelled'?'<span class="chip c-canc">Cancelled</span>':'';
-    body+=headRow('fund',esc(FUNDS[f].name)+chip);
+    body+=fr.length?dataRow('fund',esc(FUNDS[f].name)+chip+'<span class="nettag">net</span>',idsOf(fr)):headRow('fund',esc(FUNDS[f].name)+chip);
     let progs=PROG_ORDER.filter(pg=>PROGRAMS[pg].fund===f&&fr.some(x=>x.prog===pg));
     const canAdd=isDraft&&!total&&canAddIn(p,f,S.tab);
     if(canAdd) progs=PROG_ORDER.filter(pg=>PROGRAMS[pg].fund===f);
     progs.forEach(pg=>{
       const pr=fr.filter(x=>x.prog===pg);
       const addBtn=canAdd?'<button type="button" class="add" data-act="pick" data-prog="'+pg+'">+ Add account</button>':'';
-      body+=headRow('prog',esc(PROGRAMS[pg].name)+(PROGRAMS[pg].def?'<span class="chip c-def">Fund default</span>':'')+addBtn);
+      const plab=esc(PROGRAMS[pg].name)+(PROGRAMS[pg].def?'<span class="chip c-def">Fund default</span>':'')+addBtn;
+      body+=pr.length?dataRow('prog',plab+'<span class="nettag">net</span>',idsOf(pr)):headRow('prog',plab);
       if(S.panel&&S.panel.type==='pick'&&S.panel.prog===pg&&!total) body+=pickerRow(p,pg,ncol);
       ['rev','exp'].forEach(t=>{
         const tr=pr.filter(x=>ACCOUNTS[x.acct].type===t).sort((a,b)=>a.acct.localeCompare(b.acct));
@@ -719,9 +721,7 @@ function renderGrid(){
           if(S.panel&&S.panel.type==='spread'&&S.panel.id===id&&!total) body+=spreadRow(p,id,ncol);
         });
       });
-      if(pr.length) body+=dataRow('net','Net · '+esc(PROGRAMS[pg].name),idsOf(pr));
     });
-    if(fr.length) body+=dataRow('fnet','Net · '+esc(FUNDS[f].name),idsOf(fr));
   });
   if(!funds.length) body+='<tr><td class="lab" colspan="'+ncol+'" style="color:var(--muted);padding:14px">No lines here yet.</td></tr>';
   const where=total?'all visible chapters':(CHAPTERS[S.tab]||'');

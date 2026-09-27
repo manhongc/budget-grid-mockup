@@ -609,7 +609,7 @@ function renderHead(d){
 function renderBanners(d){
   const b=[];
   if(S.role==='fmSJ') b.push(['info','You see only Youth Education × San Gabriel, your scope. The Total view rolls up only what you can see.']);
-  if(S.role==='exec') b.push(['info','Read only. The Executive Approver reads budgets, forecasts and the Outlook. Whether it also gives a final approval is under review.']);
+  if(S.role==='exec') b.push(['info','Read only. The Executive Approver reads budgets, forecasts and the Outlook. The Entity Accounting Manager is the final approver.']);
   if(S.role==='acct'||S.role==='eam') { if(S.view===d.id&&d.state==='draft') b.push(['','You can edit lines in sections that are not yet submitted. You do not submit; Fund Managers and the EOM do.']); }
   if(S.view===d.id){
     if(d.state==='final') b.push(['info','The EOM made the final submission. The plan is locked; nobody edits it. The Entity Accounting Manager approves it or returns it.']);
@@ -798,8 +798,7 @@ function renderBelow(d){
   let a='<div style="display:flex;flex-direction:column;gap:14px"><div class="card"><h2>Approval</h2><div class="sub">'+esc(d.name)+' · version '+d.version+((d.round||1)>1?' · approval round '+d.round:'')+(d.history.length?' · earlier: '+d.history.map(h=>'version '+h.v+' approved (history)').join('; '):'')+'</div><div class="steps">';
   a+=step(subm===all.length&&all.length?'done':(st==='draft'||st==='returned')?'now':'',1,'Sections submitted','<span class="num">'+subm+' of '+all.length+'</span> sections submitted');
   a+=step(st==='final'||st==='approved'?'done':(subm===all.length&&(st==='draft'||st==='returned'))?'now':'',2,'EOM final submission',st==='final'||st==='approved'?'Made; the plan is locked':st==='returned'?'Needed again after the Return':'Locks the plan; nobody edits it after');
-  a+=step(st==='approved'?'done':st==='final'?'now':'',3,'EAM approval',st==='approved'?(d.kind==='forecast'?'Approved; now the current Forecast':'Approved; final'):'Approve, or return the whole document to the EOM');
-  a+=step('held','4','Executive final approval','Under review. Shown so the chain can take this step if it is added.');
+  a+=step(st==='approved'?'done':st==='final'?'now':'',3,'EAM approval',st==='approved'?(d.kind==='forecast'?'Approved; now the current Forecast':'Approved; final'):'The final approver: approve, or return the whole document to the EOM');
   a+='</div>';
   if(S.panel&&S.panel.type==='ret'&&S.role==='eam'&&st==='final'){
     a+='<div class="retbox"><label for="retReason" style="font-size:12.5px;font-weight:600">Reason for the Return (required)</label><textarea id="retReason" placeholder="What the EOM should correct">'+esc(S.panel.reason||'')+'</textarea><div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn danger sm" data-act="retdo">Return to the EOM</button><button type="button" class="btn sm" data-act="closePanel">Cancel</button></div><span style="font-size:11.5px;color:var(--muted)">The whole document goes back to the EOM. Every section stays submitted.</span></div>';

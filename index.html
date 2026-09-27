@@ -130,7 +130,9 @@ table.g{border-collapse:separate;border-spacing:0;font-size:var(--s-14);min-widt
 .g tr.fund td.lab{font-size:var(--s-16)}
 .g tr.prog td{font-weight:var(--w-head);background:var(--paper)}
 .g tr.prog td.lab{padding-left:var(--p-24)}
-.g tr.grp td{font-weight:var(--w-em);color:var(--ink);background:var(--paper)}
+.g tr.grp td{font-weight:var(--w-head);color:var(--ink);background:var(--page);border-top:1px solid var(--line);cursor:default}
+.g tr.grp td.v,.g tr.grp td.tot{font-weight:var(--w-head)}
+.g tr.grp .grpnote{display:block;margin-top:var(--p-4);font-size:var(--s-12);font-weight:var(--w-body);text-transform:none;letter-spacing:0;color:var(--ink)}
 .g tr.grp td.lab{padding-left:var(--p-32);font-size:var(--s-12);font-weight:var(--w-head);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
 .g tr.acct td{font-weight:var(--w-body)}
 .g tr.acct td.lab{padding-left:var(--p-48);color:var(--ink)}
@@ -149,7 +151,7 @@ table.g{border-collapse:separate;border-spacing:0;font-size:var(--s-14);min-widt
 .g .tog{border:0;background:transparent;padding:0 var(--p-8) 0 0;font-size:var(--s-12);color:var(--muted);cursor:pointer}
 .g .nettag,.g .cnt{margin-left:var(--p-8);font-size:var(--s-12);font-weight:var(--w-body);font-style:italic;letter-spacing:0;text-transform:none;color:var(--muted)}
 .g td.edit{padding:var(--p-4);background:var(--paper)}
-.g label.cw{display:flex;justify-content:flex-end;align-items:center;width:100%;min-width:80px;padding:0 var(--p-4);border:1px solid transparent;border-radius:var(--r-4);cursor:text}
+.g label.cw{display:flex;justify-content:flex-end;align-items:center;width:100%;min-width:80px;padding:0 var(--p-4);border:1px solid transparent;border-bottom:1px dashed var(--line);border-radius:var(--r-4);cursor:text}
 .g label.cw:hover{border-color:var(--line);background:var(--paper)}
 .g label.cw:focus-within{border-color:var(--accent);background:var(--paper)}
 .g label.cw .pre{color:var(--ink)}
@@ -157,6 +159,7 @@ table.g{border-collapse:separate;border-spacing:0;font-size:var(--s-14);min-widt
 .g label.cw.against .pre{color:var(--warn-ink)}
 .g label.cw input.cell{border:0;background:transparent;padding:var(--p-4) 0;min-width:3ch;width:auto;field-sizing:content;max-width:100%;text-align:right;font-variant-numeric:tabular-nums;outline:none}
 .g label.cw input.cell::placeholder{color:var(--ink);opacity:1}
+.g label.cw input.cell:focus::placeholder{color:transparent}
 .help .hv{margin-right:var(--p-8)}
 .help .note{display:block;font-size:var(--s-12);color:var(--muted);white-space:normal;text-align:right}
 .add{color:var(--accent);background:transparent;border:1px dashed var(--line);border-radius:var(--r-4);padding:0 var(--p-8);font-size:var(--s-12);font-weight:var(--w-em);margin-left:var(--p-8)}
@@ -281,7 +284,7 @@ table.sec{width:100%;border-collapse:collapse;font-size:var(--s-14)}
     <div class="legend">
       <span><i class="sw sw-act"></i>Actual month</span>
       <span><i class="sw sw-plan"></i>Plan month</span>
-      <span>“–” means zero</span>
+      <span>“–” means zero (an empty cell while editing)</span><span>Dashed underline: an editable account cell; shaded rows are totals</span>
       <span><i class="sw sw-chg"></i>• Changed in this version</span>
       <span>Revenue positive, expense negative; on expense rows the minus is applied for you</span>
       <span class="t-warn">Red with “!”: wrong sign for the row (negative revenue, positive expense)</span>
@@ -684,7 +687,9 @@ function renderGrid(){
         const tr=pr.filter(x=>ACCOUNTS[x.acct].type===t).sort((a,b)=>a.acct.localeCompare(b.acct));
         if(!tr.length) return;
         const gk=S.tab+'|'+pg+'|'+t; const shut=!!S.shut[gk];
-        body+=dataRow('grp '+t,'<button type="button" class="tog" data-act="tog" data-g="'+esc(gk)+'" aria-expanded="'+(!shut)+'" aria-label="'+(shut?'Show':'Hide')+' '+(t==='rev'?'revenue':'expense')+' accounts">'+(shut?'▸':'▾')+'</button>'+(t==='rev'?'Revenue':'Expense')+'<span class="cnt">'+tr.length+' account'+(tr.length===1?'':'s')+'</span>',idsOf(tr));
+        const gname=t==='rev'?'Revenue':'Expense'; const feeds=tr.map(x=>x.acct+' '+ACCOUNTS[x.acct].name).join(', ');
+        const gnote=S.grpNote===gk?'<span class="grpnote">Not editable: this is the total of '+esc(feeds)+'. Change '+(tr.length===1?'that account row':'those account rows')+' below.</span>':'';
+        body+=dataRow('grp '+t,'<button type="button" class="tog" data-act="tog" data-g="'+esc(gk)+'" aria-expanded="'+(!shut)+'" aria-label="'+(shut?'Show':'Hide')+' '+(t==='rev'?'revenue':'expense')+' accounts">'+(shut?'▸':'▾')+'</button>'+gname+' total<span class="cnt">sum of '+tr.length+' account'+(tr.length===1?'':'s')+'</span>'+gnote,idsOf(tr)).replace('<tr class="grp '+t+'">','<tr class="grp '+t+'" data-gk="'+esc(gk)+'" title="'+gname+' total — the sum of its account rows; not editable">');
         if(shut) return;
         tr.forEach(x=>{
           const a=agg(x.members);
@@ -841,6 +846,7 @@ document.addEventListener('input',e=>{
   if(t.id==='retReason'&&S.panel){ S.panel.reason=t.value; }
 });
 document.addEventListener('click',e=>{
+  const gr=e.target.closest('tr.grp'); if(gr&&!e.target.closest('button')){ S.grpNote=(S.grpNote===gr.dataset.gk)?null:gr.dataset.gk; render(); return; }
   const b=e.target.closest('button'); if(!b||b.disabled) return;
   if(b.id==='reset'){ S=freshState(S.scn,S.role); render(); return; }
   if(b.dataset.unit){ UNIT=b.dataset.unit; S.panel=null; render(); return; }

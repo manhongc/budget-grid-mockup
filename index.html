@@ -14,6 +14,7 @@
   --text:#1d1c1a; --muted:#6a6961; --faint:#9a988f;
   --primary:#d97706; --primary-ink:#ffffff; --primary-soft:#fdf1d8; --primary-text:#92400e;
   --act-bg:#f3f2ec; --borrow:#a3a198; --chg:#fff3c4;
+  --band:#ebe9e2; --rev-bg:#eef6f1; --exp-bg:#f6f0ee; --rev-edge:#5f9d7a; --exp-edge:#b07a6a;
   --neg:#dc2626; --ok:#15803d; --ok-soft:#dcfce7;
   --warn:#a16207; --warn-soft:#fef6d6; --info:#1d4ed8; --info-soft:#e0e9fe;
   --danger:#b91c1c; --danger-soft:#fde4e4; --mock:#7c3aed; --mock-soft:#f3edfe;
@@ -25,7 +26,7 @@
     --bg:#131311; --surface:#1b1b19; --surface-2:#232320; --border:#33322e; --border-strong:#46443e;
     --text:#ecebe6; --muted:#a3a198; --faint:#77766e;
     --primary:#f59e0b; --primary-ink:#1b1206; --primary-soft:#3a2a0c; --primary-text:#fcd34d;
-    --act-bg:#20201d; --borrow:#6f6d66; --chg:#3b3413;
+    --act-bg:#20201d; --borrow:#6f6d66; --chg:#3b3413; --band:#2a2a26; --rev-bg:#18261e; --exp-bg:#2a1f1c; --rev-edge:#6fbf93; --exp-edge:#c9917f;
     --neg:#f87171; --ok:#4ade80; --ok-soft:#10301c;
     --warn:#facc15; --warn-soft:#352c0b; --info:#93b4fd; --info-soft:#172444;
     --danger:#fca5a5; --danger-soft:#3a1616; --mock:#c4a5fd; --mock-soft:#2a1f40;
@@ -37,7 +38,7 @@
   --bg:#131311; --surface:#1b1b19; --surface-2:#232320; --border:#33322e; --border-strong:#46443e;
   --text:#ecebe6; --muted:#a3a198; --faint:#77766e;
   --primary:#f59e0b; --primary-ink:#1b1206; --primary-soft:#3a2a0c; --primary-text:#fcd34d;
-  --act-bg:#20201d; --borrow:#6f6d66; --chg:#3b3413;
+  --act-bg:#20201d; --borrow:#6f6d66; --chg:#3b3413; --band:#2a2a26; --rev-bg:#18261e; --exp-bg:#2a1f1c; --rev-edge:#6fbf93; --exp-edge:#c9917f;
   --neg:#f87171; --ok:#4ade80; --ok-soft:#10301c;
   --warn:#facc15; --warn-soft:#352c0b; --info:#93b4fd; --info-soft:#172444;
   --danger:#fca5a5; --danger-soft:#3a1616; --mock:#c4a5fd; --mock-soft:#2a1f40;
@@ -124,10 +125,10 @@ table.g{border-collapse:separate;border-spacing:0;font-size:12.5px;min-width:100
 .g td.help{min-width:170px;padding:4px 8px;border-right:1px solid var(--border);text-align:right}
 .g .neg{color:var(--neg)}
 .g tr.fund .neg,.g tr.prog .neg,.g tr.gtot .neg{color:inherit}
-.g tr.fund td{background:var(--surface-2);font-weight:600}
-.g tr.fund td.lab{font-size:13px}
-.g tr.prog td{font-weight:600}
-.g tr.prog td.lab{padding-left:24px}
+.g tr.fund td{background:var(--band);font-weight:700;border-top:2px solid var(--border-strong)}
+.g tr.fund td.lab{font-size:13.5px;letter-spacing:-.005em}
+.g tr.prog td{font-weight:600;background:var(--surface)}
+.g tr.prog td.lab{padding-left:22px;font-size:13px}
 .g tr.acct td.lab{padding-left:42px;font-weight:400;color:var(--text)}
 .g tr.acct .code{color:var(--faint);font-size:11.5px;margin-right:4px}
 .g tr.invalid td{background:var(--danger-soft)}
@@ -198,12 +199,21 @@ table.sec{width:100%;border-collapse:collapse;font-size:12.5px}
 .fmtbar .seg button{padding:3px 12px}
 .g .against,.g input.cell.against{color:var(--neg)}
 .prev span.against{color:var(--neg)}
-.g tr.grp td{color:var(--muted);font-weight:600}
-.g tr.grp td.lab{padding-left:38px;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em}
+.g tr.grp td{font-weight:700;color:var(--text)}
+.g tr.grp.rev td{background:var(--rev-bg)}
+.g tr.grp.exp td{background:var(--exp-bg)}
+.g tr.grp td.lab{padding-left:30px;font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;box-shadow:inset 3px 0 0 var(--grp-edge)}
+.g tr.grp.rev td.lab{--grp-edge:var(--rev-edge)}
+.g tr.grp.exp td.lab{--grp-edge:var(--exp-edge)}
+.g .tog{border:0;background:transparent;padding:0 6px 0 0;font-size:11px;color:var(--muted);cursor:pointer;width:16px}
+.g .cnt{margin-left:8px;font-size:10.5px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--faint)}
+.g tr.acct td{font-weight:400}
+.g tr.acct td.lab{color:var(--text)}
 .g tr.acct td.lab{padding-left:54px}
-.g tr.net td{font-weight:600;border-bottom:1px solid var(--border-strong)}
-.g tr.net td.lab{padding-left:24px}
-.g tr.fnet td{font-weight:700;background:var(--surface-2)}
+.g tr.net td{font-weight:700;border-top:1px solid var(--border-strong);border-bottom:1px solid var(--border-strong);background:var(--surface)}
+.g tr.net td.lab{padding-left:22px;font-style:italic}
+.g tr.fnet td{font-weight:700;background:var(--band);border-bottom:2px solid var(--border-strong)}
+.g tr.fnet td.lab{font-style:italic}
 .g tr.gtot td{border-top:0}
 .g tr.gtot.first td{border-top:2px solid var(--border-strong)}
 .g tr.gtot.net td{border-top:1px solid var(--border-strong)}
@@ -242,12 +252,8 @@ table.sec{width:100%;border-collapse:collapse;font-size:12.5px}
     </label>
     <label for="role">Viewing as
       <select id="role">
-        <option value="fmGSJ">Fund Manager · General Operating × San Gabriel</option>
-        <option value="fmG">Fund Manager · General Operating (all chapters)</option>
         <option value="fmSJ">Fund Manager · Youth Education × San Gabriel</option>
-        <option value="fmYLA">Fund Manager · Youth Education × Irvine</option>
         <option value="fmY">Fund Manager · Youth Education (all chapters)</option>
-        <option value="fmT">Fund Manager · Temple Building (all chapters)</option>
         <option value="acct">Accounting Staff · entity-wide</option>
         <option value="eom" selected>Entity Operations Manager</option>
         <option value="eam">Entity Accounting Manager</option>
@@ -384,14 +390,9 @@ const SCN={
   B:{today:'2027-10-15',fy:2027,idx:9,draft:'B28'},
   C:{today:'2028-01-10',fy:2028,idx:0,draft:'F3'}
 };
-function fmRole(f,c){ const fn=FUNDS[f].name.replace(/ Fund$/,''); return {label:'Fund Manager · '+fn+(c?' × '+CHAPTERS[c]:''),scope:fn+(c?' × '+CHAPTERS[c]:' (all chapters)'),sees:(ff,cc)=>ff===f&&(!c||cc===c),edits:(ff,cc)=>ff===f&&(!c||cc===c),level:c?1:2,submits:(ff,cc)=>ff===f&&(!c||cc===c)}; }
 const ROLES={
-  fmSJ:fmRole('YTH','SJ'),
-  fmYLA:fmRole('YTH','LA'),
-  fmY:fmRole('YTH'),
-  fmGSJ:fmRole('GEN','SJ'),
-  fmG:fmRole('GEN'),
-  fmT:fmRole('TMP'),
+  fmSJ:{label:'Fund Manager · Youth Education × San Gabriel',sees:(f,c)=>f==='YTH'&&c==='SJ',edits:(f,c)=>f==='YTH'&&c==='SJ',level:1,submits:(f,c)=>f==='YTH'&&c==='SJ'},
+  fmY:{label:'Fund Manager · Youth Education',sees:f=>f==='YTH',edits:f=>f==='YTH',level:2,submits:f=>f==='YTH'},
   acct:{label:'Accounting Staff',sees:()=>true,edits:()=>true,level:0,submits:()=>false},
   eom:{label:'Entity Operations Manager',sees:()=>true,edits:()=>true,level:3,submits:()=>true},
   eam:{label:'Entity Accounting Manager',sees:()=>true,edits:()=>true,level:0,submits:()=>false},
@@ -450,7 +451,7 @@ function freshState(scn,role){
     });
   }
   plans[d.id]=d;
-  return {scn:scn,role:role,view:d.id,tab:null,plans:plans,current:'F1',log:[],panel:null,added:{},ret:null};
+  return {scn:scn,role:role,view:d.id,tab:null,plans:plans,current:'F1',log:[],panel:null,added:{},ret:null,shut:{}};
 }
 function isChanged(p,id,m){ if(m<p.cov[0]||m>p.cov[1]) return false; return ((p.values[id]||[])[m]||0)!==((p.orig[id]||[])[m]||0); }
 function p12m(id,upTo){ let s=0; for(let m=0;m<upTo;m++) s+=actual(id,m); return s; }
@@ -575,7 +576,7 @@ function render(){
 function renderFmtBar(){
   const u=[['one','1'],['K','K'],['M','M']];
   $('fmtbar').innerHTML='<span class="k">Amounts</span><div class="seg" role="group" aria-label="Units">'+u.map(x=>'<button type="button" data-unit="'+x[0]+'" aria-pressed="'+(UNIT===x[0])+'">'+x[1]+'</button>').join('')+'</div>'+
-    '<label class="dec" for="dec"><input type="checkbox" id="dec" '+(DEC?'checked':'')+' '+(UNIT!=='one'?'disabled':'')+'> Show cents (.00)</label>'+
+    '<span class="k">Accounts</span><button type="button" class="btn sm" data-act="closeall">Collapse all</button><button type="button" class="btn sm" data-act="openall">Expand all</button><label class="dec" for="dec"><input type="checkbox" id="dec" '+(DEC?'checked':'')+' '+(UNIT!=='one'?'disabled':'')+'> Show cents (.00)</label>'+
     '<span class="k">'+(UNIT==='one'?'USD':UNIT==='K'?'USD thousands (one decimal)':'USD millions (two decimals)')+'</span>'+
     (UNIT!=='one'&&S.view===sc().draft?'<span class="k warnk">Switch to 1 to edit</span>':'');
 }
@@ -617,7 +618,7 @@ function renderHead(d){
 }
 function renderBanners(d){
   const b=[];
-  if(role().scope) b.push(['info','You see only '+esc(role().scope)+', your scope. The Total view rolls up only what you can see.']);
+  if(S.role==='fmSJ') b.push(['info','You see only Youth Education × San Gabriel, your scope. The Total view rolls up only what you can see.']);
   if(S.role==='exec') b.push(['info','Read only. The Executive Approver reads budgets, forecasts and the Outlook. The Entity Accounting Manager is the final approver.']);
   if(S.role==='acct'||S.role==='eam') { if(S.view===d.id&&d.state==='draft') b.push(['','You can edit lines in sections that are not yet submitted. You do not submit; Fund Managers and the EOM do.']); }
   if(S.view===d.id){
@@ -692,7 +693,9 @@ function renderGrid(){
       ['rev','exp'].forEach(t=>{
         const tr=pr.filter(x=>ACCOUNTS[x.acct].type===t).sort((a,b)=>a.acct.localeCompare(b.acct));
         if(!tr.length) return;
-        body+=dataRow('grp',t==='rev'?'Revenue':'Expense',idsOf(tr));
+        const gk=S.tab+'|'+pg+'|'+t; const shut=!!S.shut[gk];
+        body+=dataRow('grp '+t,'<button type="button" class="tog" data-act="tog" data-g="'+esc(gk)+'" aria-expanded="'+(!shut)+'" aria-label="'+(shut?'Show':'Hide')+' '+(t==='rev'?'revenue':'expense')+' accounts">'+(shut?'▸':'▾')+'</button>'+(t==='rev'?'Revenue':'Expense')+'<span class="cnt">'+tr.length+' account'+(tr.length===1?'':'s')+'</span>',idsOf(tr));
+        if(shut) return;
         tr.forEach(x=>{
           const a=agg(x.members);
           const id=x.members[0];
@@ -865,6 +868,8 @@ document.addEventListener('click',e=>{
     const l=lineOf(id); log('Applied spread on '+l.acct+' '+ACCOUNTS[l.acct].name+' · '+PROGRAMS[l.prog].name+' · '+CHAPTERS[l.ch]+': '+fmtExact(to)+' over '+rem.length+' months');
     S.panel=null; render(); return;
   }
+  if(act==='tog'){ const g=b.dataset.g; S.shut[g]=!S.shut[g]; render(); return; }
+  if(act==='closeall'||act==='openall'){ document.querySelectorAll('button[data-act="tog"]').forEach(x=>{ S.shut[x.dataset.g]=act==='closeall'; }); render(); return; }
   if(act==='closePanel'){ S.panel=null; render(); return; }
   if(act==='pick'){ S.panel={type:'pick',prog:b.dataset.prog,q:''}; render(); const e2=$('pickQ'); if(e2) e2.focus(); return; }
   if(act==='addAcct'){

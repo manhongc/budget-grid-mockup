@@ -836,7 +836,7 @@ document.addEventListener('change',e=>{
   if(t.classList.contains('cell')){
     const p=draftPlan(); const id=t.dataset.id; const m=+t.dataset.m; const neg=t.dataset.neg==='1'; const raw=parseAmt(t.value); const v=raw===null?null:(neg?(/^\s*\+/.test(t.value)?Math.abs(raw):-raw):raw);
     if(v===null){ S.flash={kind:'warn',text:'“'+t.value+'” is not an amount. Enter a number such as 1250 or 1,250.00; the value was left as it was.'}; {const o=p.values[id][m]||0; t.value=neg&&o>0?'+'+fmtEdit(o):fmtEdit(neg?-o:o);} render(); return; }
-    if(v!==(p.values[id][m]||0)){ const l=lineOf(id); log('Edited '+l.acct+' '+ACCOUNTS[l.acct].name+' · '+PROGRAMS[l.prog].name+' · '+CHAPTERS[l.ch]+' · '+pp(m)+': '+fmtExact(p.values[id][m]||0)+' → '+fmtExact(v)); p.values[id][m]=v; S.flash=null; }
+    if(v!==(p.values[id][m]||0)){ const l=lineOf(id); log('Edited '+l.acct+' '+ACCOUNTS[l.acct].name+' · '+PROGRAMS[l.prog].name+' · '+CHAPTERS[l.ch]+' · '+pp(m)+': '+fmtExactS(p.values[id][m]||0,SIGN(l.acct))+' → '+fmtExactS(v,SIGN(l.acct))); p.values[id][m]=v; S.flash=null; }
     rerenderKeepFocus();
   }
 });
@@ -863,7 +863,7 @@ document.addEventListener('click',e=>{
     const id=b.dataset.id; const rem=remaining(d); const to=S.panel.amount-actualsToDate(d,id); const parts=spreadPlan(to,rem);
     rem.forEach((m,i)=>{ d.values[id][m]=parts[i]; });
     d.helper[id]=S.panel.amount;
-    const l=lineOf(id); log('Applied spread on '+l.acct+' '+ACCOUNTS[l.acct].name+' · '+PROGRAMS[l.prog].name+' · '+CHAPTERS[l.ch]+': '+fmtExact(to)+' over '+rem.length+' months');
+    const l=lineOf(id); log('Applied spread on '+l.acct+' '+ACCOUNTS[l.acct].name+' · '+PROGRAMS[l.prog].name+' · '+CHAPTERS[l.ch]+': '+fmtExactS(to,SIGN(l.acct))+' over '+rem.length+' months');
     S.panel=null; render(); return;
   }
   if(act==='tog'){ const g=b.dataset.g; S.shut[g]=!S.shut[g]; render(); return; }

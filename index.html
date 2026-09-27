@@ -242,8 +242,12 @@ table.sec{width:100%;border-collapse:collapse;font-size:12.5px}
     </label>
     <label for="role">Viewing as
       <select id="role">
+        <option value="fmGSJ">Fund Manager · General Operating × San Gabriel</option>
+        <option value="fmG">Fund Manager · General Operating (all chapters)</option>
         <option value="fmSJ">Fund Manager · Youth Education × San Gabriel</option>
+        <option value="fmYLA">Fund Manager · Youth Education × Irvine</option>
         <option value="fmY">Fund Manager · Youth Education (all chapters)</option>
+        <option value="fmT">Fund Manager · Temple Building (all chapters)</option>
         <option value="acct">Accounting Staff · entity-wide</option>
         <option value="eom" selected>Entity Operations Manager</option>
         <option value="eam">Entity Accounting Manager</option>
@@ -380,9 +384,14 @@ const SCN={
   B:{today:'2027-10-15',fy:2027,idx:9,draft:'B28'},
   C:{today:'2028-01-10',fy:2028,idx:0,draft:'F3'}
 };
+function fmRole(f,c){ const fn=FUNDS[f].name.replace(/ Fund$/,''); return {label:'Fund Manager · '+fn+(c?' × '+CHAPTERS[c]:''),scope:fn+(c?' × '+CHAPTERS[c]:' (all chapters)'),sees:(ff,cc)=>ff===f&&(!c||cc===c),edits:(ff,cc)=>ff===f&&(!c||cc===c),level:c?1:2,submits:(ff,cc)=>ff===f&&(!c||cc===c)}; }
 const ROLES={
-  fmSJ:{label:'Fund Manager · Youth Education × San Gabriel',sees:(f,c)=>f==='YTH'&&c==='SJ',edits:(f,c)=>f==='YTH'&&c==='SJ',level:1,submits:(f,c)=>f==='YTH'&&c==='SJ'},
-  fmY:{label:'Fund Manager · Youth Education',sees:f=>f==='YTH',edits:f=>f==='YTH',level:2,submits:f=>f==='YTH'},
+  fmSJ:fmRole('YTH','SJ'),
+  fmYLA:fmRole('YTH','LA'),
+  fmY:fmRole('YTH'),
+  fmGSJ:fmRole('GEN','SJ'),
+  fmG:fmRole('GEN'),
+  fmT:fmRole('TMP'),
   acct:{label:'Accounting Staff',sees:()=>true,edits:()=>true,level:0,submits:()=>false},
   eom:{label:'Entity Operations Manager',sees:()=>true,edits:()=>true,level:3,submits:()=>true},
   eam:{label:'Entity Accounting Manager',sees:()=>true,edits:()=>true,level:0,submits:()=>false},
@@ -608,7 +617,7 @@ function renderHead(d){
 }
 function renderBanners(d){
   const b=[];
-  if(S.role==='fmSJ') b.push(['info','You see only Youth Education × San Gabriel, your scope. The Total view rolls up only what you can see.']);
+  if(role().scope) b.push(['info','You see only '+esc(role().scope)+', your scope. The Total view rolls up only what you can see.']);
   if(S.role==='exec') b.push(['info','Read only. The Executive Approver reads budgets, forecasts and the Outlook. The Entity Accounting Manager is the final approver.']);
   if(S.role==='acct'||S.role==='eam') { if(S.view===d.id&&d.state==='draft') b.push(['','You can edit lines in sections that are not yet submitted. You do not submit; Fund Managers and the EOM do.']); }
   if(S.view===d.id){
@@ -871,7 +880,7 @@ document.addEventListener('click',e=>{
   }
   if(act==='submit'){ const k=b.dataset.k; const [f,c]=k.split('|'); d.sections[k]={status:'submitted',by:role().label,level:role().level,at:now}; log('Submitted section '+FUNDS[f].name+' · '+CHAPTERS[c]); render(); return; }
   if(act==='withdraw'){ const k=b.dataset.k; const [f,c]=k.split('|'); d.sections[k]={status:'open'}; log('Withdrew the submission of '+FUNDS[f].name+' · '+CHAPTERS[c]); render(); return; }
-  if(act==='reopen'){ const k=b.dataset.k; const [f,c]=k.split('|'); d.sections[k]={status:'reopened'}; log('Reopened '+FUNDS[f].name+' · '+CHAPTERS[c]+' to its preparers'); render(); return; }
+  if(act==='reopen'){ const k=b.dataset.k; const [f,c]=k.split('|'); d.sections[k]={status:'reopened',was:d.sections[k].status}; log('Reopened '+FUNDS[f].name+' · '+CHAPTERS[c]+' to its preparers'); render(); return; }
   if(act==='dup'){
     const snapId=d.id+'@v'+d.version; const snap=JSON.parse(JSON.stringify(d));
     Object.assign(snap,{id:snapId,name:d.name+' v'+d.version,short:d.short+' v'+d.version,sections:null,history:[],orig:null});

@@ -18,7 +18,7 @@
   --p-4:4px; --p-8:8px; --p-12:12px; --p-16:16px; --p-24:24px; --p-32:32px; --p-48:48px;
   --r-4:4px; --r-8:8px; --r-full:999px;
   --ink:#1b1f24; --muted:#525a63; --line:#80878e; --paper:#ffffff; --page:#f3f4f6;
-  --accent:#2c5282;
+  --accent:#b45309;
   --warn-ink:#9b1c1c; --warn-paper:#fdecec; --warn-line:#c53030;
   --ok-ink:#1f6a3a; --ok-paper:#e6f4ea; --ok-line:#2f855a;
   --info-ink:#1e4e8c; --info-paper:#e8f0fb; --info-line:#3b6fb6;
@@ -27,7 +27,7 @@
   :root:not([data-theme="light"]){
     color-scheme:dark;
     --ink:#e7e9ec; --muted:#a9b0b8; --line:#737b84; --paper:#1c1f24; --page:#121418;
-    --accent:#8fb3e8;
+    --accent:#f59e0b;
     --warn-ink:#f4a7a7; --warn-paper:#3a1a1a; --warn-line:#e06666;
     --ok-ink:#9fdcb3; --ok-paper:#13301f; --ok-line:#4caf73;
     --info-ink:#a9c6f0; --info-paper:#152a45; --info-line:#5b8fd6;
@@ -36,7 +36,7 @@
 :root[data-theme="dark"]{
   color-scheme:dark;
   --ink:#e7e9ec; --muted:#a9b0b8; --line:#737b84; --paper:#1c1f24; --page:#121418;
-  --accent:#8fb3e8;
+  --accent:#f59e0b;
   --warn-ink:#f4a7a7; --warn-paper:#3a1a1a; --warn-line:#e06666;
   --ok-ink:#9fdcb3; --ok-paper:#13301f; --ok-line:#4caf73;
   --info-ink:#a9c6f0; --info-paper:#152a45; --info-line:#5b8fd6;
@@ -122,15 +122,15 @@ table.g{border-collapse:separate;border-spacing:0;font-size:var(--s-14);min-widt
 .g .lab{position:sticky;left:0;z-index:1;text-align:left;min-width:280px;max-width:330px;padding:var(--p-8) var(--p-12);border-right:1px solid var(--line);white-space:normal;overflow-wrap:anywhere}
 .g thead .lab{z-index:3}
 .g td.v{text-align:right;min-width:88px;padding:var(--p-8)}
-.g td.v.act{background:var(--page)}
+.g td.v.act,.g tr td.v.act{background:var(--page)}
 .g td.v.borrow{color:var(--muted);font-style:italic}
 .g td.tot{text-align:right;min-width:96px;padding:var(--p-8) var(--p-12);font-weight:var(--w-head);border-left:1px solid var(--line)}
 .g td.help{min-width:170px;padding:var(--p-4) var(--p-8);border-right:1px solid var(--line);text-align:right}
-.g tr.fund td{background:var(--page);font-weight:var(--w-head);border-top:2px solid var(--line)}
+.g tr.fund td{font-weight:var(--w-head);border-top:2px solid var(--line)}
 .g tr.fund td.lab{font-size:var(--s-16)}
 .g tr.prog td{font-weight:var(--w-head);background:var(--paper)}
 .g tr.prog td.lab{padding-left:var(--p-24)}
-.g tr.grp td{font-weight:var(--w-head);color:var(--ink);background:var(--page);border-top:1px solid var(--line);cursor:default}
+.g tr.grp td{font-weight:var(--w-head);color:var(--ink);border-top:1px solid var(--line);cursor:default}
 .g tr.grp td.v,.g tr.grp td.tot{font-weight:var(--w-head)}
 .g tr.grp .grpnote{display:block;margin-top:var(--p-4);font-size:var(--s-12);font-weight:var(--w-body);text-transform:none;letter-spacing:0;color:var(--ink)}
 .g tr.grp td.lab{padding-left:var(--p-32);font-size:var(--s-12);font-weight:var(--w-head);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
@@ -139,7 +139,7 @@ table.g{border-collapse:separate;border-spacing:0;font-size:var(--s-14);min-widt
 .g .code{color:var(--muted);font-family:var(--mono);font-size:var(--s-12);margin-right:var(--p-4)}
 .g tr.invalid td{background:var(--warn-paper)}
 .g tr.invalid td.lab .msg{display:block;font-size:var(--s-12);color:var(--warn-ink);margin-top:var(--p-4)}
-.g tr.gtot td{background:var(--page);font-weight:var(--w-head)}
+.g tr.gtot td{font-weight:var(--w-head)}
 .g tr.gtot.first td{border-top:2px solid var(--line)}
 .g td.cmp,.g th.cmp{text-align:right;min-width:100px;padding:var(--p-8)}
 .g .cmp.first{border-left:2px solid var(--line)}
@@ -148,7 +148,8 @@ table.g{border-collapse:separate;border-spacing:0;font-size:var(--s-14);min-widt
 .g td.v.against::after,.g td.tot.against::after,.g label.cw.against::after,.help .hv.against::after{content:" !";font-weight:var(--w-head)}
 .g td.chg,.g td.edit.chg{background:var(--info-paper);position:relative}
 .g td.chg::before{content:"•";position:absolute;left:var(--p-4);top:var(--p-4);color:var(--info-ink);font-weight:var(--w-head)}
-.g .tog{border:0;background:transparent;padding:0 var(--p-8) 0 0;font-size:var(--s-12);color:var(--muted);cursor:pointer}
+.g .tog{border:0;background:transparent;padding:var(--p-4) var(--p-8);margin-left:calc(-1 * var(--p-8));font-size:var(--s-16);line-height:1;color:var(--ink);cursor:pointer;border-radius:var(--r-4)}
+.g .tog:hover{background:var(--page)}
 .g .nettag,.g .cnt{margin-left:var(--p-8);font-size:var(--s-12);font-weight:var(--w-body);font-style:italic;letter-spacing:0;text-transform:none;color:var(--muted)}
 .g td.edit{padding:var(--p-4);background:var(--paper)}
 .g label.cw{display:flex;justify-content:flex-end;align-items:center;width:100%;min-width:80px;padding:0 var(--p-4);border:1px solid transparent;border-bottom:1px dashed var(--line);border-radius:var(--r-4);cursor:text}
@@ -391,6 +392,7 @@ const ROLES={
 };
 
 let S=null;
+let COLACT=Array(12).fill(false);
 let UNIT='one', DEC=false;
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -629,6 +631,7 @@ function renderBanners(d){
 
 function renderGrid(){
   const prov=provider(); const isDraft=S.view===sc().draft; const p=isDraft?draftPlan():null;
+  COLACT=Array.from({length:12},(_,m)=>!!prov.head(m).act);
   const r=role(); const total=S.tab==='TOTAL'; const outlook=S.view==='OUT';
   const c27=curIdx(2027); const B=S.plans.B27;
   const ids=viewLines().filter(id=>{const l=lineOf(id);return r.sees(PROGRAMS[l.prog].fund,l.ch);});
@@ -680,7 +683,7 @@ function renderGrid(){
     progs.forEach(pg=>{
       const pr=fr.filter(x=>x.prog===pg);
       const addBtn=canAdd?'<button type="button" class="add" data-act="pick" data-prog="'+pg+'">+ Add account</button>':'';
-      const plab=esc(PROGRAMS[pg].name)+(PROGRAMS[pg].def?'<span class="chip c-def">Fund default</span>':'')+addBtn;
+      const plab=esc(PROGRAMS[pg].name)+addBtn;
       body+=pr.length?dataRow('prog',plab+'<span class="nettag">net</span>',idsOf(pr)):headRow('prog',plab);
       if(S.panel&&S.panel.type==='pick'&&S.panel.prog===pg&&!total) body+=pickerRow(p,pg,ncol);
       ['rev','exp'].forEach(t=>{
@@ -732,8 +735,8 @@ function renderGrid(){
 function rowHtml(cls,label,vals,edit,helpCell,extras,norm){
   let s='<tr class="'+cls+'"><td class="lab">'+label+'</td>'+(helpCell||'');
   for(let m=0;m<12;m++){
-    if(!vals){ s+='<td class="v"></td>'; continue; }
-    const v=vals[m]; const c=edit&&edit.cls?edit.cls[m]:'';
+    if(!vals){ s+='<td class="v'+(COLACT[m]?' act':'')+'"></td>'; continue; }
+    const v=vals[m]; const c=(edit&&edit.cls?edit.cls[m]:'')||(COLACT[m]?'act':'');
     const ag=norm&&v*norm<0?' against':'';
     const ch=edit&&edit.p&&edit.p.orig&&edit.id&&isChanged(edit.p,edit.id,m)?' chg':'';
     const tip=(ch?'Changed in this version. ':'')+(ag?'Wrong sign for this row.':'');

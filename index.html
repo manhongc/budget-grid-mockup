@@ -618,7 +618,7 @@ function renderBanners(d){
     if(d.state==='draft'&&d.history.length){ const hv=d.history[d.history.length-1]; b.push(['info','Version '+d.version+' was duplicated by the Entity Accounting Manager from approved version '+hv.v+', which stays as a historical document'+(S.current===hv.snap?' and remains the current Forecast until this version is approved':'')+'. Its sections start as copied and count as submitted; open only the sections that need to change. Highlighted cells differ from the copied values.']); }
     if(d.state==='approved') b.push(['ok',d.kind==='forecast'?d.name+' is approved and is now the current Forecast. The Outlook takes its plan months from it.':d.name+' is approved and final.']);
     if(d.state!=='approved'&&d.lines.some(id=>isInvalid(d,id)&&ROLES[S.role].sees(fundOf(id),lineOf(id).ch))) b.push(['danger','Wildfire Relief Fund 2026 was cancelled after '+(d.from||'the prior version')+'. Its lines carried into this version are invalid. They block that section’s submission, the final submission and approval until they are moved to another Program or cleared.']);
-    if(d.kind==='budget'&&d.fy===2028) b.push(['','Budget FYE28 starts with a row for every account that had activity in the last 12 months. Its cells start at “–”. Each row’s annual amount to spread starts from that activity. Recording began at launch on 2027-01-01, so for this first Budget the last 12 months hold '+curIdx(2027)+' months of activity; from FYE29 on they hold all 12.']);
+    if(d.kind==='budget'&&d.fy===2028) b.push(['','Budget FYE28 starts with a row for every account with Actuals in its covered months. Its cells start at “–”. Each row’s annual amount to spread starts from its L'+curIdx(2027)+'M Actuals: Actuals are recorded from launch on 2027-01-01, so '+curIdx(2027)+' completed months are covered; earlier months are N/A and are not counted. From FYE29 on the basis is L12M Actuals.']);
     if(remaining(d).length===0) b.push(['warn','Every month of this plan has passed, so there is no month left to spread into. Spread is unavailable; type values into the cells instead (item 82).']);
   } else if(S.view!=='OUT'){
     b.push(['','This is a complete, read-only view of an approved plan. Only '+draftPlan().name+' can be edited.']);
@@ -644,7 +644,7 @@ function renderGrid(){
   const nCmp=outlook?4:0;
   const ncol=1+(showHelp?1:0)+12+1+nCmp;
   let h='<thead><tr><th class="lab">Fund / Program / Account</th>';
-  if(showHelp) h+='<th class="r"><span class="p">Annual amount</span><br>to spread<br>'+(p.kind==='forecast'?'from Budget FYE27':'from last 12 months')+'</th>';
+  if(showHelp) h+='<th class="r"><span class="p">Annual amount</span><br>to spread<br>'+(p.kind==='forecast'?'from Budget FYE27':'from L'+curIdx(2027)+'M Actuals')+'</th>';
   for(let m=0;m<12;m++){
     const hd=prov.head(m);
     h+='<th class="'+(hd.act?'act':'')+'"><span class="p">'+fyLab(prov.fy)+'-'+pp(m)+'</span><br>'+prov.fy+' '+MONTHS[m]+'<br>'+hd.src+'</th>';
@@ -752,7 +752,7 @@ function spreadRow(p,id,ncol){
   const amt=S.panel.amount; const to=amt-atd; const parts=spreadPlan(to,rem);
   const c=curIdx(p.fy);
   const l=lineOf(id); const norm=SIGN(l.acct);
-  const src=p.kind==='forecast'?'Starts from this row’s FYE27 Budget annual amount. You may change it.':'Starts from this row’s activity in the last 12 months. You may change it.';
+  const src=p.kind==='forecast'?'Starts from this row’s FYE27 Budget annual amount. You may change it.':'Starts from this row’s L'+curIdx(2027)+'M Actuals (the covered completed months). You may change it.';
   const prev=previewHtml(parts,rem,norm);
   return '<tr class="panel"><td colspan="'+ncol+'"><div class="panelbox">'+
     '<div class="f full"><span class="big">Spread · '+esc(l.acct+' '+ACCOUNTS[l.acct].name)+' · '+esc(PROGRAMS[l.prog].name)+' · '+esc(CHAPTERS[l.ch])+'</span></div>'+

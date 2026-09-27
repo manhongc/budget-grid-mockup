@@ -145,7 +145,6 @@ table.g{border-collapse:separate;border-spacing:0;font-size:var(--s-14);min-widt
 .g .cmp.first{border-left:2px solid var(--line)}
 .g td.cmp.unfav{color:var(--warn-ink)}
 .g .against,.g input.cell.against{color:var(--warn-ink)}
-.g td.v.against::after,.g td.tot.against::after,.g label.cw.against::after,.help .hv.against::after{content:" !";font-weight:var(--w-head)}
 .g td.chg,.g td.edit.chg{background:var(--info-paper);position:relative}
 .g td.chg::before{content:"•";position:absolute;left:var(--p-4);top:var(--p-4);color:var(--info-ink);font-weight:var(--w-head)}
 .g .tog{border:0;background:transparent;padding:var(--p-4) var(--p-8);margin-left:calc(-1 * var(--p-8));font-size:var(--s-16);line-height:1;color:var(--ink);cursor:pointer;border-radius:var(--r-4)}
@@ -176,7 +175,6 @@ table.g{border-collapse:separate;border-spacing:0;font-size:var(--s-14);min-widt
 .prev span{background:var(--paper);border:1px solid var(--line);border-radius:var(--r-4);padding:0 var(--p-8);font-size:var(--s-12)}
 .prev span b{font-weight:var(--w-em);color:var(--muted);margin-right:var(--p-4)}
 .prev span.against{color:var(--warn-ink)}
-.prev span.against::after{content:" !";font-weight:var(--w-head)}
 .pick{width:min(420px,100%)}
 .pick input{width:100%;border:1px solid var(--line);border-radius:var(--r-4);padding:var(--p-8);background:var(--paper)}
 .pick ul{list-style:none;margin:var(--p-8) 0 0;padding:0;max-height:210px;overflow:auto;border:1px solid var(--line);border-radius:var(--r-4);background:var(--paper)}
@@ -288,7 +286,7 @@ table.sec{width:100%;border-collapse:collapse;font-size:var(--s-14)}
       <span>“–” means zero (an empty cell while editing)</span><span>Dashed underline: an editable account cell; shaded rows are totals</span>
       <span><i class="sw sw-chg"></i>• Changed in this version</span>
       <span>Revenue positive, expense negative; on expense rows the minus is applied for you</span>
-      <span class="t-warn">Red with “!”: wrong sign for the row (negative revenue, positive expense)</span>
+      <span class="t-warn">Red: wrong direction for the row (a minus on revenue, a plus on expense)</span>
       <span>Variance: plus is favorable; a red minus is unfavorable</span>
     </div>
   </div>
@@ -403,6 +401,8 @@ function fmt(v){
   return (x<0?'−':'')+Math.abs(x).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
 }
 function fmtEdit(v){ if(!v) return ''; const x=v/100; return (x<0?'−':'')+Math.abs(x).toLocaleString('en-US',{minimumFractionDigits:DEC?2:0,maximumFractionDigits:2}); }
+function fmtS(v,norm){ return (norm<0&&v>0?'+':'')+fmt(v); }
+function fmtExactS(v,norm){ return (norm<0&&v>0?'+':'')+fmtExact(v); }
 function fmtExact(v){ if(!v) return '–'; const x=v/100; return (x<0?'−':'')+Math.abs(x).toLocaleString('en-US',{minimumFractionDigits:DEC?2:0,maximumFractionDigits:2}); }
 function parseAmt(s){
   s=String(s).replace(/[,\s$]/g,'').replace(/−/g,'-');
@@ -692,7 +692,7 @@ function renderGrid(){
         const gk=S.tab+'|'+pg+'|'+t; const shut=!!S.shut[gk];
         const gname=t==='rev'?'Revenue':'Expense'; const feeds=tr.map(x=>x.acct+' '+ACCOUNTS[x.acct].name).join(', ');
         const gnote=S.grpNote===gk?'<span class="grpnote">Not editable: this is the total of '+esc(feeds)+'. Change '+(tr.length===1?'that account row':'those account rows')+' below.</span>':'';
-        body+=dataRow('grp '+t,'<button type="button" class="tog" data-act="tog" data-g="'+esc(gk)+'" aria-expanded="'+(!shut)+'" aria-label="'+(shut?'Show':'Hide')+' '+(t==='rev'?'revenue':'expense')+' accounts">'+(shut?'▸':'▾')+'</button>'+gname+' total<span class="cnt">sum of '+tr.length+' account'+(tr.length===1?'':'s')+'</span>'+gnote,idsOf(tr)).replace('<tr class="grp '+t+'">','<tr class="grp '+t+'" data-gk="'+esc(gk)+'" title="'+gname+' total — the sum of its account rows; not editable">');
+        body+=dataRow('grp '+t,'<button type="button" class="tog" data-act="tog" data-g="'+esc(gk)+'" aria-expanded="'+(!shut)+'" aria-label="'+(shut?'Show':'Hide')+' '+(t==='rev'?'revenue':'expense')+' accounts">'+(shut?'▸':'▾')+'</button>'+gname+' total<span class="cnt">from '+tr.length+' account'+(tr.length===1?'':'s')+'</span>'+gnote,idsOf(tr)).replace('<tr class="grp '+t+'">','<tr class="grp '+t+'" data-gk="'+esc(gk)+'" title="'+gname+' total — the sum of its account rows; not editable">');
         if(shut) return;
         tr.forEach(x=>{
           const a=agg(x.members);
@@ -711,7 +711,7 @@ function renderGrid(){
               if(rem.length) btn='<button type="button" class="btn sm" data-act="spread" data-id="'+esc(id)+'">Spread</button>';
               else { btn='<button type="button" class="btn sm" disabled title="No remaining month to spread into">Spread</button>'; note='<span class="note">No remaining month to spread into</span>'; }
             }
-            helpCell='<td class="help"><span class="hv'+(hv*norm<0?' against':'')+'">'+fmt(hv)+'</span>'+btn+note+'</td>';
+            helpCell='<td class="help"><span class="hv'+(hv*norm<0?' against':'')+'">'+fmtS(hv,norm)+'</span>'+btn+note+'</td>';
           }
           body+=rowHtml('acct'+(inv?' invalid':''),lab,a.v,{cls:a.cls,ed:ed&&!inv,id:id,p:p},helpCell,cmpOf(x.members),norm);
           if(S.panel&&S.panel.type==='spread'&&S.panel.id===id&&!total) body+=spreadRow(p,id,ncol);
@@ -742,11 +742,11 @@ function rowHtml(cls,label,vals,edit,helpCell,extras,norm){
     const tip=(ch?'Changed in this version. ':'')+(ag?'Wrong sign for this row.':'');
     const editableMonth=edit&&edit.ed&&m>=edit.p.cov[0]&&m<=edit.p.cov[1];
     if(editableMonth){
-      const neg=norm<0;
-      s+='<td class="edit'+(neg?' exp':'')+ch+'"'+(tip?' title="'+tip+'"':'')+'><label class="cw'+ag+'">'+(neg?'<span class="pre" aria-hidden="true">−</span>':'')+'<input class="cell'+ag+'" id="c-'+esc(edit.id)+'-'+m+'" data-id="'+esc(edit.id)+'" data-m="'+m+'"'+(neg?' data-neg="1"':'')+' inputmode="decimal" aria-label="'+esc(edit.id)+' '+pp(m)+(neg?' (expense; the minus is applied)':'')+'" value="'+fmtEdit(neg?-v:v)+'" placeholder="–"></label></td>';
-    } else s+='<td class="v '+c+ag+ch+'"'+(tip?' title="'+tip+'"':'')+'>'+fmt(v)+'</td>';
+      const neg=norm<0; const credit=neg&&v>0;
+      s+='<td class="edit'+(neg?' exp':'')+ch+'"'+(tip?' title="'+tip+'"':'')+'><label class="cw'+ag+'">'+(neg&&!credit?'<span class="pre" aria-hidden="true">−</span>':'')+'<input class="cell'+ag+'" id="c-'+esc(edit.id)+'-'+m+'" data-id="'+esc(edit.id)+'" data-m="'+m+'"'+(neg?' data-neg="1"':'')+' inputmode="decimal" aria-label="'+esc(edit.id)+' '+pp(m)+(credit?' (expense row; a credit)':neg?' (expense; the minus is applied)':'')+'" value="'+(credit?'+'+fmtEdit(v):fmtEdit(neg?-v:v))+'" placeholder="–"></label></td>';
+    } else s+='<td class="v '+c+ag+ch+'"'+(tip?' title="'+tip+'"':'')+'>'+fmtS(v,norm)+'</td>';
   }
-  if(vals){ const t=sum(vals); s+='<td class="tot'+(norm&&t*norm<0?' against':'')+'">'+fmt(t)+'</td>'; } else s+='<td class="tot"></td>';
+  if(vals){ const t=sum(vals); s+='<td class="tot'+(norm&&t*norm<0?' against':'')+'">'+fmtS(t,norm)+'</td>'; } else s+='<td class="tot"></td>';
   if(extras) extras.forEach((x,i)=>{ const bad=x!==null&&i===3&&x<0; s+='<td class="cmp'+(i===0?' first':'')+(bad?' unfav':'')+'">'+(x===null?'':fmt(x))+'</td>'; });
   return s+'</tr>';
 }
@@ -759,15 +759,15 @@ function spreadRow(p,id,ncol){
   const prev=previewHtml(parts,rem,norm);
   return '<tr class="panel"><td colspan="'+ncol+'"><div class="panelbox">'+
     '<div class="f full"><span class="big">Spread · '+esc(l.acct+' '+ACCOUNTS[l.acct].name)+' · '+esc(PROGRAMS[l.prog].name)+' · '+esc(CHAPTERS[l.ch])+'</span></div>'+
-    '<div class="f"><label class="k" for="spreadAmt">Annual amount</label><span class="amtwrap'+(norm<0?' exp':'')+'">'+(norm<0?'<span class="pre">−</span>':'')+'<input class="amt" id="spreadAmt" inputmode="decimal" value="'+fmtEdit(norm<0?-amt:amt)+'"></span><span class="k narrow">'+src+(norm<0?' The minus is applied for you on expense rows.':'')+'</span></div>'+
+    '<div class="f"><label class="k" for="spreadAmt">Annual amount</label><span class="amtwrap'+(norm<0?' exp':'')+'">'+(norm<0&&!(amt>0)?'<span class="pre">−</span>':'')+'<input class="amt" id="spreadAmt" inputmode="decimal" value="'+(norm<0&&amt>0?'+'+fmtEdit(amt):fmtEdit(norm<0?-amt:amt))+'"></span><span class="k narrow">'+src+(norm<0?' The minus is applied for you on expense rows.':'')+'</span></div>'+
     '<div class="f"><span class="k">Actuals to date'+(c>0&&p.fy<=2027?' ('+pp(0)+'–'+pp(c-1)+')':'')+'</span><span class="big">'+fmtExact(atd)+'</span><span class="k">Completed months only</span></div>'+
-    '<div class="f"><span class="k">To spread</span><span class="big" id="spreadTo">'+fmtExact(to)+'</span><span class="k">Annual amount less actuals to date</span></div>'+
+    '<div class="f"><span class="k">To spread</span><span class="big" id="spreadTo">'+fmtExactS(to,norm)+'</span><span class="k">Annual amount less actuals to date</span></div>'+
     '<div class="f grow"><span class="k">Across '+rem.length+' remaining month'+(rem.length===1?'':'s')+' ('+pp(rem[0])+'–'+pp(rem[rem.length-1])+'); leftover cents go to the last month</span><div class="prev num" id="spreadPrev">'+prev+'</div></div>'+
     '<div class="row"><button type="button" class="btn sm" data-act="applySpread" data-id="'+esc(id)+'">Apply spread to '+pp(rem[0])+'–'+pp(rem[rem.length-1])+'</button><button type="button" class="btn sm" data-act="closePanel">Cancel</button><span class="k center">Replaces those months’ values. Recorded like any other edit.</span></div>'+
     '</div></td></tr>';
 }
 function previewHtml(parts,rem,norm){
-  const chips=rem.map((m,i)=>'<span class="'+(parts[i]*norm<0?'against':'')+'"><b>'+pp(m)+'</b>'+fmtExact(parts[i])+'</span>').join('');
+  const chips=rem.map((m,i)=>'<span class="'+(parts[i]*norm<0?'against':'')+'"><b>'+pp(m)+'</b>'+fmtExactS(parts[i],norm)+'</span>').join('');
   const warn=parts.some(x=>x*norm<0)?'<span class="k t-warn full">Some months come out against this row’s normal direction. They are allowed and shown in red.</span>':'';
   return chips+warn;
 }
@@ -834,8 +834,8 @@ document.addEventListener('change',e=>{
   if(t.id==='dec'){ DEC=t.checked; render(); return; }
   if(t.id==='addFund'&&t.value){ const k=draftPlan().id+'|'+S.tab; (S.added[k]=S.added[k]||[]).push(t.value); render(); return; }
   if(t.classList.contains('cell')){
-    const p=draftPlan(); const id=t.dataset.id; const m=+t.dataset.m; const neg=t.dataset.neg==='1'; const raw=parseAmt(t.value); const v=raw===null?null:(neg?-raw:raw);
-    if(v===null){ S.flash={kind:'warn',text:'“'+t.value+'” is not an amount. Enter a number such as 1250 or 1,250.00; the value was left as it was.'}; t.value=fmtEdit(neg?-(p.values[id][m]||0):(p.values[id][m]||0)); render(); return; }
+    const p=draftPlan(); const id=t.dataset.id; const m=+t.dataset.m; const neg=t.dataset.neg==='1'; const raw=parseAmt(t.value); const v=raw===null?null:(neg?(/^\s*\+/.test(t.value)?Math.abs(raw):-raw):raw);
+    if(v===null){ S.flash={kind:'warn',text:'“'+t.value+'” is not an amount. Enter a number such as 1250 or 1,250.00; the value was left as it was.'}; {const o=p.values[id][m]||0; t.value=neg&&o>0?'+'+fmtEdit(o):fmtEdit(neg?-o:o);} render(); return; }
     if(v!==(p.values[id][m]||0)){ const l=lineOf(id); log('Edited '+l.acct+' '+ACCOUNTS[l.acct].name+' · '+PROGRAMS[l.prog].name+' · '+CHAPTERS[l.ch]+' · '+pp(m)+': '+fmtExact(p.values[id][m]||0)+' → '+fmtExact(v)); p.values[id][m]=v; S.flash=null; }
     rerenderKeepFocus();
   }
@@ -844,7 +844,7 @@ document.addEventListener('keydown',e=>{ if(e.key==='Enter'&&e.target.classList&
 document.addEventListener('focusin',e=>{ if(e.target.classList&&e.target.classList.contains('cell')) e.target.select(); });
 document.addEventListener('input',e=>{
   const t=e.target;
-  if(t.id==='spreadAmt'&&S.panel){ const raw=parseAmt(t.value); const v=raw===null?null:(SIGN(lineOf(S.panel.id).acct)<0?-raw:raw); if(v!==null){ S.panel.amount=v; const p=draftPlan(); const rem=remaining(p); const to=v-actualsToDate(p,S.panel.id); const parts=spreadPlan(to,rem); $('spreadTo').textContent=fmtExact(to); $('spreadPrev').innerHTML=previewHtml(parts,rem,SIGN(lineOf(S.panel.id).acct)); } }
+  if(t.id==='spreadAmt'&&S.panel){ const raw=parseAmt(t.value); const v=raw===null?null:(SIGN(lineOf(S.panel.id).acct)<0?(/^\s*\+/.test(t.value)?Math.abs(raw):-raw):raw); if(v!==null){ S.panel.amount=v; const p=draftPlan(); const rem=remaining(p); const to=v-actualsToDate(p,S.panel.id); const parts=spreadPlan(to,rem); $('spreadTo').textContent=fmtExactS(to,SIGN(lineOf(S.panel.id).acct)); $('spreadPrev').innerHTML=previewHtml(parts,rem,SIGN(lineOf(S.panel.id).acct)); } }
   if(t.id==='pickQ'&&S.panel){ S.panel.q=t.value; const pos=t.selectionStart; render(); const e2=$('pickQ'); if(e2){ e2.focus(); e2.setSelectionRange(pos,pos);} }
   if(t.id==='retReason'&&S.panel){ S.panel.reason=t.value; }
 });

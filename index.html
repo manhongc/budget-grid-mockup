@@ -470,6 +470,7 @@ function editableLine(p,id){
   if(p.state!=='draft'&&p.state!=='returned') return false;
   const s=p.sections[secKey(f,c)]||{status:'open'};
   if(p.state==='returned') return s.status==='reopened'||S.role==='eom';
+  if(s.status==='copied') return false;
   if(s.status==='submitted') return r.level>(s.level||0);
   return true;
 }
@@ -479,9 +480,9 @@ function canSubmit(p,k){
   return r.level>=1&&r.submits(f,c)&&(p.state==='draft'||p.state==='returned')&&(s.status==='open'||s.status==='reopened');
 }
 function canWithdraw(p,k){ const r=role(); const [f,c]=k.split('|'); const s=p.sections[k]; return p.state==='draft'&&s.status==='submitted'&&r.level>=1&&r.submits(f,c)&&r.level>=(s.level||0); }
-function canReopen(p,k){ const s=p.sections[k]; return S.role==='eom'&&(p.state==='draft'||p.state==='returned')&&s.status==='submitted'; }
+function canReopen(p,k){ const s=p.sections[k]; if(s.status==='copied') return (S.role==='eom'||S.role==='eam')&&p.state==='draft'; return S.role==='eom'&&(p.state==='draft'||p.state==='returned')&&s.status==='submitted'; }
 function finalBlock(p){
-  const keys=Object.keys(p.sections); const open=keys.filter(k=>p.sections[k].status!=='submitted').length;
+  const keys=Object.keys(p.sections); const open=keys.filter(k=>p.sections[k].status!=='submitted'&&p.sections[k].status!=='copied').length;
   const inv=p.lines.filter(id=>isInvalid(p,id)).length; const why=[];
   if(open) why.push(open+(open===1?' section is':' sections are')+' not submitted');
   if(inv) why.push(inv+(inv===1?' invalid line':' invalid lines')+' to move or clear');
@@ -495,6 +496,7 @@ function canAddIn(p,f,c){
   const s=p.sections[secKey(f,c)];
   if(!s) return p.state==='draft'||S.role==='eom';
   if(p.state==='returned') return s.status==='reopened'||S.role==='eom';
+  if(s.status==='copied') return false;
   if(s.status==='submitted') return r.level>(s.level||0);
   return true;
 }
@@ -612,7 +614,7 @@ function renderBanners(d){
   if(S.view===d.id){
     if(d.state==='final') b.push(['info','The EOM made the final submission. The plan is locked; nobody edits it. The Entity Accounting Manager approves it or returns it.']);
     if(d.state==='returned'&&d.ret) b.push(['warn','Returned to the EOM by the Entity Accounting Manager: “'+esc(d.ret)+'”. Every section stays submitted. The EOM corrects the numbers directly or reopens chosen sections to their preparers, then submits again. That is a new approval round of the same version.']);
-    if(d.state==='draft'&&d.history.length){ const hv=d.history[d.history.length-1]; b.push(['info','Version '+d.version+' was duplicated by the Entity Accounting Manager from approved version '+hv.v+', which stays as a historical document'+(S.current===hv.snap?' and remains the current Forecast until this version is approved':'')+'. Its sections start open for preparation. Highlighted cells are changes made in this version.']); }
+    if(d.state==='draft'&&d.history.length){ const hv=d.history[d.history.length-1]; b.push(['info','Version '+d.version+' was duplicated by the Entity Accounting Manager from approved version '+hv.v+', which stays as a historical document'+(S.current===hv.snap?' and remains the current Forecast until this version is approved':'')+'. Its sections start as copied and count as submitted; open only the sections that need to change. Highlighted cells differ from the copied values.']); }
     if(d.state==='approved') b.push(['ok',d.kind==='forecast'?d.name+' is approved and is now the current Forecast. The Outlook takes its plan months from it.':d.name+' is approved and final.']);
     if(d.state!=='approved'&&d.lines.some(id=>isInvalid(d,id)&&ROLES[S.role].sees(fundOf(id),lineOf(id).ch))) b.push(['danger','Wildfire Relief Fund 2026 was cancelled after '+(d.from||'the prior version')+'. Its lines carried into this version are invalid. They block that section’s submission, the final submission and approval until they are moved to another Program or cleared.']);
     if(d.kind==='budget'&&d.fy===2028) b.push(['','Budget FYE28 starts with a row for every account that had activity in the last 12 months. Its cells start at “–”. Each row’s annual amount to spread starts from that activity. Recording began at launch on 2027-01-01, so for this first Budget the last 12 months hold '+curIdx(2027)+' months of activity; from FYE29 on they hold all 12.']);
@@ -774,16 +776,16 @@ function renderBelow(d){
   if(S.view!==d.id){ $('below').innerHTML=logCard(); return; }
   const r=role();
   const keys=Object.keys(d.sections).filter(k=>{const [f,c]=k.split('|');return r.sees(f,c);}).sort((a,b)=>{const [fa,ca]=a.split('|');const [fb,cb]=b.split('|');return FUND_ORDER.indexOf(fa)-FUND_ORDER.indexOf(fb)||CH_ORDER.indexOf(ca)-CH_ORDER.indexOf(cb);});
-  const all=Object.keys(d.sections); const subm=all.filter(k=>d.sections[k].status==='submitted').length;
+  const all=Object.keys(d.sections); const subm=all.filter(k=>d.sections[k].status==='submitted'||d.sections[k].status==='copied').length;
   let t='<div class="card"><h2>Sections</h2><div class="sub">A section is one Fund in one Chapter or Home Office. The Fund × Chapter Fund Manager submits it; the Fund-level Fund Manager and then the EOM may step in.</div><div class="secwrap"><table class="sec"><thead><tr><th>Section</th><th>Lines</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
   keys.forEach(k=>{
     const [f,c]=k.split('|'); const s=d.sections[k]; const inv=sectionInvalidCount(d,k);
     const n=d.lines.filter(id=>secKey(fundOf(id),lineOf(id).ch)===k).length;
-    const st=s.status==='submitted'?'<span class="pill p-approved">Submitted</span><span class="small">'+esc(s.by)+' · '+esc(s.at)+'</span>':s.status==='reopened'?'<span class="pill p-returned">Reopened</span><span class="small">Back with its preparers</span>':'<span class="pill p-draft">Open</span>';
+    const st=s.status==='copied'?'<span class="pill p-final">Copied</span><span class="small">Unchanged from version '+(d.version-1)+'; counts as submitted</span>':s.status==='submitted'?'<span class="pill p-approved">Submitted</span><span class="small">'+esc(s.by)+' · '+esc(s.at)+'</span>':s.status==='reopened'?'<span class="pill p-returned">Reopened</span><span class="small">Back with its preparers</span>':'<span class="pill p-draft">Open</span>';
     let acts='';
     if(canSubmit(d,k)) acts+='<button type="button" class="btn sm" data-act="submit" data-k="'+k+'" '+(inv?'disabled':'')+'>'+(r.level>1?'Submit (step in)':'Submit')+'</button>';
     if(canWithdraw(d,k)) acts+='<button type="button" class="btn sm" data-act="withdraw" data-k="'+k+'">Withdraw</button>';
-    if(canReopen(d,k)) acts+='<button type="button" class="btn sm" data-act="reopen" data-k="'+k+'">Reopen to preparer</button>';
+    if(canReopen(d,k)) acts+='<button type="button" class="btn sm" data-act="reopen" data-k="'+k+'">'+(s.status==='copied'?'Open for changes':'Reopen to preparer')+'</button>';
     if(s.status==='submitted'&&d.state==='draft'&&r.level>(s.level||0)&&r.edits(f,c)) acts+='<span class="small">You may still edit it (step in)</span>';
     if(inv) acts+='<span class="small" style="color:var(--danger)">'+inv+' invalid line'+(inv>1?'s':'')+' block submission</span>';
     t+='<tr><td><button type="button" class="link" data-tab="'+c+'">'+esc(FUNDS[f].name)+'</button><span class="small">'+esc(CHAPTERS[c])+'</span></td><td class="num">'+n+'</td><td>'+st+'</td><td><div class="acts">'+(acts||'<span class="small">—</span>')+'</div></td></tr>';
@@ -878,7 +880,7 @@ document.addEventListener('click',e=>{
     d.history.push({v:d.version,snap:snapId});
     log('Duplicated '+d.name+' version '+d.version+' as version '+(d.version+1)+'; version '+d.version+' stays as a historical document');
     d.version+=1; d.round=1; d.state='draft'; d.note=null; d.from=snap.name;
-    Object.keys(d.sections).forEach(k=>{ d.sections[k]={status:'open'}; });
+    Object.keys(d.sections).forEach(k=>{ d.sections[k]={status:'copied'}; });
     d.orig=JSON.parse(JSON.stringify(d.values)); render(); return;
   }
   if(act==='final'){ if(d.state==='returned') d.round=(d.round||1)+1; d.state='final'; d.ret=null; log('Made the final submission of '+d.name+' (version '+d.version+((d.round||1)>1?', approval round '+d.round:'')+')'); render(); return; }

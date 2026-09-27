@@ -80,7 +80,8 @@ b,strong{font-weight:var(--w-head)}
 .meta{font-size:var(--s-12);color:var(--muted);margin-top:var(--p-4);display:flex;flex-wrap:wrap;gap:var(--p-4) var(--p-16)}
 .meta b{color:var(--ink)}
 .actions{display:flex;flex-wrap:wrap;gap:var(--p-8);align-items:center}
-.btn{border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:var(--r-4);padding:var(--p-8) var(--p-16);font-size:var(--s-14);font-weight:var(--w-em)}
+.btn{border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:var(--r-4);padding:var(--p-8) var(--p-16);font-size:var(--s-14);font-weight:var(--w-head)}
+.btn:not(:disabled):not(.primary):not(.danger):hover{background:var(--page);border-color:var(--ink)}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--paper);font-weight:var(--w-head)}
 .btn.danger{background:var(--warn-paper);color:var(--warn-ink);border-color:var(--warn-line);font-weight:var(--w-head)}
 .btn.sm{padding:var(--p-4) var(--p-8);font-size:var(--s-12)}
@@ -763,7 +764,7 @@ function spreadRow(p,id,ncol){
     '<div class="f"><span class="k">Actuals to date'+(c>0&&p.fy<=2027?' ('+pp(0)+'–'+pp(c-1)+')':'')+'</span><span class="big">'+fmtExact(atd)+'</span><span class="k">Completed months only</span></div>'+
     '<div class="f"><span class="k">To spread</span><span class="big" id="spreadTo">'+fmtExactS(to,norm)+'</span><span class="k">Annual amount less actuals to date</span></div>'+
     '<div class="f grow"><span class="k">Across '+rem.length+' remaining month'+(rem.length===1?'':'s')+' ('+pp(rem[0])+'–'+pp(rem[rem.length-1])+'); leftover cents go to the last month</span><div class="prev num" id="spreadPrev">'+prev+'</div></div>'+
-    '<div class="row"><button type="button" class="btn sm" data-act="applySpread" data-id="'+esc(id)+'">Apply spread to '+pp(rem[0])+'–'+pp(rem[rem.length-1])+'</button><button type="button" class="btn sm" data-act="closePanel">Cancel</button><span class="k center">Replaces those months’ values. Recorded like any other edit.</span></div>'+
+    '<div class="row"><button type="button" class="btn primary sm" data-act="applySpread" data-id="'+esc(id)+'">Apply spread to '+pp(rem[0])+'–'+pp(rem[rem.length-1])+'</button><button type="button" class="btn sm" data-act="closePanel">Cancel</button><span class="k center">Replaces those months’ values. Recorded like any other edit.</span></div>'+
     '</div></td></tr>';
 }
 function previewHtml(parts,rem,norm){
